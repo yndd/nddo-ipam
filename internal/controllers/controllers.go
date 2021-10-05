@@ -33,9 +33,9 @@ func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll t
 	eventChans := make(map[string]chan event.GenericEvent)
 	for _, setup := range []func(ctrl.Manager, controller.Options, logging.Logger, time.Duration, string) (string, chan event.GenericEvent, error){
 		ipam.SetupIpam,
+		ipam.SetupIpamIpprefix,
 		ipam.SetupIpamIprange,
 		ipam.SetupIpamIpaddress,
-		ipam.SetupIpamIpprefix,
 	} {
 		gvk, eventChan, err := setup(mgr, option, l, poll, namespace)
 		if err != nil {

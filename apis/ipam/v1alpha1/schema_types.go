@@ -34,9 +34,11 @@ type NddoipamIpam struct {
 type NddoipamIpamAggregate struct {
 	AdminState      *string                     `json:"admin-state,omitempty"`
 	Description     *string                     `json:"description,omitempty"`
+	LastUpdate      *string                     `json:"last-update,omitempty"`
 	NetworkInstance *string                     `json:"network-instance"`
 	Prefix          *string                     `json:"prefix"`
 	Prefixes        *uint32                     `json:"prefixes,omitempty"`
+	Reason          *string                     `json:"reason,omitempty"`
 	RirName         *string                     `json:"rir-name"`
 	Status          *string                     `json:"status,omitempty"`
 	Tag             []*NddoipamIpamAggregateTag `json:"tag,omitempty"`
@@ -55,12 +57,14 @@ type NddoipamIpamIpAddress struct {
 	AdminState      *string                          `json:"admin-state,omitempty"`
 	Description     *string                          `json:"description,omitempty"`
 	DnsName         *string                          `json:"dns-name,omitempty"`
+	LastUpdate      *string                          `json:"last-update,omitempty"`
 	NatInside       *string                          `json:"nat-inside,omitempty"`
 	NatOutside      *string                          `json:"nat-outside,omitempty"`
 	NetworkInstance *string                          `json:"network-instance"`
 	Origin          *string                          `json:"origin,omitempty"`
 	IpPrefix        []*NddoipamIpamIpAddressIpPrefix `json:"ip-prefix,omitempty"`
 	IpRange         []*NddoipamIpamIpAddressIpRange  `json:"ip-range,omitempty"`
+	Reason          *string                          `json:"reason,omitempty"`
 	Status          *string                          `json:"status,omitempty"`
 	Tag             []*NddoipamIpamIpAddressTag      `json:"tag,omitempty"`
 	Tenant          *string                          `json:"tenant"`
@@ -91,11 +95,14 @@ type NddoipamIpamIpAddressTag struct {
 type NddoipamIpamIpPrefix struct {
 	AdminState      *string                          `json:"admin-state,omitempty"`
 	Adresses        *uint32                          `json:"adresses,omitempty"`
-	Aggregate       []*NddoipamIpamIpPrefixAggregate `json:"aggregate,omitempty"`
 	Description     *string                          `json:"description,omitempty"`
+	LastUpdate      *string                          `json:"last-update,omitempty"`
 	NetworkInstance *string                          `json:"network-instance"`
+	Aggregate       []*NddoipamIpamIpPrefixAggregate `json:"aggregate,omitempty"`
+	IpPrefix        []*NddoipamIpamIpPrefixIpPrefix  `json:"ip-prefix,omitempty"`
 	Pool            *bool                            `json:"pool,omitempty"`
 	Prefix          *string                          `json:"prefix"`
+	Reason          *string                          `json:"reason,omitempty"`
 	Status          *string                          `json:"status,omitempty"`
 	Tag             []*NddoipamIpamIpPrefixTag       `json:"tag,omitempty"`
 	Tenant          *string                          `json:"tenant"`
@@ -103,6 +110,13 @@ type NddoipamIpamIpPrefix struct {
 
 // NddoipamIpamIpPrefixAggregate struct
 type NddoipamIpamIpPrefixAggregate struct {
+	NetworkInstance *string `json:"network-instance"`
+	Prefix          *string `json:"prefix"`
+	Tenant          *string `json:"tenant"`
+}
+
+// NddoipamIpamIpPrefixIpPrefix struct
+type NddoipamIpamIpPrefixIpPrefix struct {
 	NetworkInstance *string `json:"network-instance"`
 	Prefix          *string `json:"prefix"`
 	Tenant          *string `json:"tenant"`
@@ -119,9 +133,11 @@ type NddoipamIpamIpRange struct {
 	AdminState      *string                         `json:"admin-state,omitempty"`
 	Description     *string                         `json:"description,omitempty"`
 	End             *string                         `json:"end"`
+	LastUpdate      *string                         `json:"last-update,omitempty"`
 	NetworkInstance *string                         `json:"network-instance"`
 	Aggregate       []*NddoipamIpamIpRangeAggregate `json:"aggregate,omitempty"`
 	IpPrefix        []*NddoipamIpamIpRangeIpPrefix  `json:"ip-prefix,omitempty"`
+	Reason          *string                         `json:"reason,omitempty"`
 	Size            *uint32                         `json:"size,omitempty"`
 	Start           *string                         `json:"start"`
 	Status          *string                         `json:"status,omitempty"`
@@ -151,7 +167,7 @@ type NddoipamIpamIpRangeTag struct {
 
 // NddoipamIpamRir struct
 type NddoipamIpamRir struct {
-	Aggregates  *uint64               `json:"aggregates,omitempty"`
+	Aggregates  *uint32               `json:"aggregates,omitempty"`
 	Description *string               `json:"description,omitempty"`
 	Name        *string               `json:"name"`
 	Private     *bool                 `json:"private,omitempty"`

@@ -24,9 +24,10 @@ import (
 	"time"
 
 	"github.com/openconfig/gnmi/proto/gnmi"
-	ynddparser "github.com/yndd/ndd-yang/pkg/parser"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 )
 
 func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetResponse, error) {
@@ -37,9 +38,12 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 	defer s.unaryRPCsem.Release(1)
 
 	log := s.log.WithValues("Path", req.GetPath())
-	log.Debug("Get gnmi...", "Data", s.schemaRaw)
 
-	// need to find a way to deal with hierarchical keys
+	if x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: []*gnmi.PathElem{}}); err != nil {
+		return nil, err
+	} else {
+		log.Debug("Get gnmi...", "Data", x)
+	}
 
 	updates, err := s.HandleGet(req.GetPath())
 	if err != nil {
@@ -58,26 +62,22 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 }
 
 func (s *Server) HandleGet(reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
-	var err error
+	//var err error
 	updates := make([]*gnmi.Update, 0)
 	if reqPaths == nil {
-		if updates, err = appendUpdateResponse(s.schemaRaw, &gnmi.Path{}, updates); err != nil {
+		x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: []*gnmi.PathElem{}})
+		if err != nil {
+			return nil, err
+		}
+		if updates, err = appendUpdateResponse(x, &gnmi.Path{}, updates); err != nil {
 			return nil, err
 		}
 	} else {
 		for _, path := range reqPaths {
-			tc := &ynddparser.TraceCtxtGnmi{
-				Path:   path,
-				Idx:    0,
-				Msg:    make([]string, 0),
-				Action: ynddparser.ConfigTreeActionGet,
+			xx, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: path.GetElem()})
+			if err != nil {
+				return nil, err
 			}
-			xx := s.parser.ParseTreeWithActionGnmi(s.schemaRaw, tc, 0, 0)
-			if !tc.Found {
-				xx = nil
-			}
-			// copy the data to ensure we dont manipulate the origin
-			// without this we override the rawdata and impact the cache
 			x, err := s.parser.DeepCopy(xx)
 			if err != nil {
 				if !strings.Contains(fmt.Sprint(err), "in cannot be nil") {
@@ -104,6 +104,23 @@ func (s *Server) HandleGet(reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
 	return updates, nil
 }
 
+// prepareResponseData prepare the response data aligned with the controller
+// 1. the hierarchical elements within the resource should be removed
+// 2. add the last element of the path back to the return data
+func prepareResponseData(x interface{}, path *gnmi.Path, hElem []string) (interface{}, error) {
+	// remove hierarchical elements
+	switch x1 := x.(type) {
+	case map[string]interface{}:
+		for _, elem := range hElem {
+			delete(x1, elem)
+		}
+	}
+	// add last element of the path to the return data
+	xx := make(map[string]interface{})
+	xx[path.GetElem()[len(path.GetElem())-1].GetName()] = x
+	return xx, nil
+}
+
 func appendUpdateResponse(data interface{}, path *gnmi.Path, updates []*gnmi.Update) ([]*gnmi.Update, error) {
 	var err error
 	var d []byte
@@ -120,21 +137,4 @@ func appendUpdateResponse(data interface{}, path *gnmi.Path, updates []*gnmi.Upd
 	}
 	updates = append(updates, upd)
 	return updates, nil
-}
-
-// prepareResponseData prepare the response data aligned with the controller
-// 1. the hierarchical elements within the resource should be removed
-// 2. add the last element of the path back to the return data
-func prepareResponseData(x interface{}, path *gnmi.Path, hElem []string) (interface{}, error) {
-	// remove hierarchical elements
-	switch x1 := x.(type) {
-	case map[string]interface{}:
-		for _, elem := range hElem {
-			delete(x1, elem)
-		}
-	}
-	// add last element of the path to the return data
-	xx := make(map[string]interface{})
-	xx[path.GetElem()[len(path.GetElem())-1].GetName()] = x
-	return xx, nil
 }

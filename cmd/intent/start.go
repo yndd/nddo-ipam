@@ -36,6 +36,7 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/ratelimiter"
 
 	"github.com/yndd/nddo-ipam/internal/controllers"
+	"github.com/yndd/nddo-ipam/internal/intentlogic"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 	"github.com/yndd/nddo-ipam/internal/server"
 	//+kubebuilder:scaffold:imports
@@ -106,14 +107,18 @@ var startCmd = &cobra.Command{
 					InSecure:          true,
 				},
 			),
-			server.WithHandler(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
 			server.WithParser(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
+			server.WithConnecter(intentlogic.New(logging.NewLogrLogger(zlog.WithName("grpcserver")))),
 		)
 		if err != nil {
 			return errors.Wrap(err, "unable to initialize server")
 		}
 
-		zlog.Info("New Server", "schema", s.GetSchema())
+		state, err := s.GetState()
+		if err != nil {
+			return errors.Wrap(err, "unable to get state from cache")
+		}
+		zlog.Info("New Server", "State", state)
 
 		if err := s.Run(context.Background()); err != nil {
 			return errors.Wrap(err, "unable to start grpc server")

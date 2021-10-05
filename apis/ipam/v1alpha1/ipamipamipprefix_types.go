@@ -35,8 +35,7 @@ const (
 type IpamIpprefix struct {
 	// +kubebuilder:validation:Enum=`disable`;`enable`
 	// +kubebuilder:default:="enable"
-	AdminState *string                  `json:"admin-state,omitempty"`
-	Aggregate  []*IpamIpprefixAggregate `json:"aggregate,omitempty"`
+	AdminState *string `json:"admin-state,omitempty"`
 	// kubebuilder:validation:MinLength=1
 	// kubebuilder:validation:MaxLength=255
 	// +kubebuilder:validation:Required
@@ -47,8 +46,10 @@ type IpamIpprefix struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
 	// +kubebuilder:default:="default"
-	NetworkInstance *string `json:"network-instance,omitempty"`
-	Pool            *bool   `json:"pool,omitempty"`
+	NetworkInstance *string                  `json:"network-instance,omitempty"`
+	Aggregate       []*IpamIpprefixAggregate `json:"aggregate,omitempty"`
+	IpPrefix        []*IpamIpprefixIpPrefix  `json:"ip-prefix,omitempty"`
+	Pool            *bool                    `json:"pool,omitempty"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Pattern=`(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/(([0-9])|([1-2][0-9])|(3[0-2]))|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))(/(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))`
 	Prefix *string            `json:"prefix"`
@@ -63,6 +64,13 @@ type IpamIpprefix struct {
 
 // IpamIpprefixAggregate struct
 type IpamIpprefixAggregate struct {
+	NetworkInstance *string `json:"network-instance"`
+	Prefix          *string `json:"prefix"`
+	Tenant          *string `json:"tenant"`
+}
+
+// IpamIpprefixIpPrefix struct
+type IpamIpprefixIpPrefix struct {
 	NetworkInstance *string `json:"network-instance"`
 	Prefix          *string `json:"prefix"`
 	Tenant          *string `json:"tenant"`

@@ -107,7 +107,26 @@ var resourceRefPathsIpam = []*gnmi.Path{
 	},
 }
 var localleafRefIpam = []*parser.LeafRefGnmi{}
-var externalLeafRefIpam = []*parser.LeafRefGnmi{}
+var externalLeafRefIpam = []*parser.LeafRefGnmi{
+	{
+		LocalPath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "ipam"},
+				{Name: "aggregate", Key: map[string]string{
+					"prefix": "",
+				}},
+				{Name: "rir-name"},
+			},
+		},
+		RemotePath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "", Key: map[string]string{
+					"": "",
+				}},
+			},
+		},
+	},
+}
 
 // SetupIpam adds a controller that reconciles Ipams.
 func SetupIpam(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string) (string, chan cevent.GenericEvent, error) {
@@ -340,6 +359,7 @@ func (e *externalIpam) Observe(ctx context.Context, mg resource.Managed) (manage
 
 	// gnmi get request
 	req := &gnmi.GetRequest{
+		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Path:     rootPath,
 		Encoding: gnmi.Encoding_JSON,
 	}
@@ -368,6 +388,11 @@ func (e *externalIpam) Observe(ctx context.Context, mg resource.Managed) (manage
 	//
 	//x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
 
+	//switch x := x1.(type) {
+	//case map[string]interface{}:
+	//	x1 = x["ipam"]
+	//}
+
 	// validate gnmi resp information
 	var exists bool
 	var x2 interface{}
@@ -379,12 +404,13 @@ func (e *externalIpam) Observe(ctx context.Context, mg resource.Managed) (manage
 				log.Debug("Observe response get value issue")
 				return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
 			}
+			//if x2 != nil {
+			//	exists = true
+			//}
 			switch x := x2.(type) {
 			case map[string]interface{}:
-				if x, ok := x["ipam"]; ok {
-					if x != nil {
-						exists = true
-					}
+				if x["ipam"] != nil {
+					exists = true
 				}
 			}
 		}
@@ -487,7 +513,7 @@ func (e *externalIpam) Create(ctx context.Context, mg resource.Managed) (managed
 
 	updates := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpam)
 	for _, update := range updates {
-		log.Debug("Create Fine Grane Updates", "Path", update.Path, "Value", update.GetVal())
+		log.Debug("Create Fine Grane Updates", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
 	}
 
 	if len(updates) == 0 {
@@ -496,6 +522,7 @@ func (e *externalIpam) Create(ctx context.Context, mg resource.Managed) (managed
 	}
 
 	req := &gnmi.SetRequest{
+		Prefix:  &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Replace: updates,
 	}
 
@@ -523,6 +550,7 @@ func (e *externalIpam) Update(ctx context.Context, mg resource.Managed, obs mana
 	}
 
 	req := &gnmi.SetRequest{
+		Prefix: &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Update: obs.ResourceUpdates,
 		Delete: obs.ResourceDeletes,
 	}
@@ -552,6 +580,7 @@ func (e *externalIpam) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	req := gnmi.SetRequest{
+		Prefix: &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Delete: rootPath,
 	}
 
@@ -570,6 +599,7 @@ func (e *externalIpam) GetTarget() []string {
 func (e *externalIpam) GetConfig(ctx context.Context) ([]byte, error) {
 	e.log.Debug("Get Config ...")
 	req := &gnmi.GetRequest{
+		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Path:     []*gnmi.Path{},
 		Encoding: gnmi.Encoding_JSON,
 	}

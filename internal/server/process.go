@@ -1,5 +1,6 @@
 package server
 
+/*
 import (
 	"encoding/json"
 	"net"
@@ -7,6 +8,9 @@ import (
 	"github.com/apparentlymart/go-cidr/cidr"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 )
+*/
+
+/*
 
 func (s *Server) ProcessUpdate(resources map[string]map[string]*resource) error {
 	ipam := s.GetSchema().GetIpam()
@@ -201,6 +205,9 @@ func (h *Handler) ProcessAggregateDelete(origAggregate, newAggregate []*ipamv1al
 	}
 	return newA, nil
 }
+*/
+
+///@@@@ above was here before
 
 /*
 // ProcessAggregateUpdate check for deleted objects and sets the status according to previous state if exists
@@ -308,6 +315,9 @@ func (h *Handler) ProcessPrefixUpdate(origPrefixes, newPrefixes []*ipamv1alpha1.
 	return newPrefixes, nil
 }
 */
+
+// @@ below was there before
+/*
 
 func (h *Handler) ProcessAggregateWithPrefix(newPrefixes []*ipamv1alpha1.NddoipamIpamIpPrefix, origAggregate []*ipamv1alpha1.NddoipamIpamAggregate) ([]*ipamv1alpha1.NddoipamIpamIpPrefix, error) {
 	for _, new := range newPrefixes {
@@ -479,6 +489,9 @@ func (h *Handler) getNewPrefixStructs(keys []string, r map[string]*resource) ([]
 	}
 	return newStruct, nil
 }
+*/
+
+// @@ above was there
 
 /*
 	// check the origin

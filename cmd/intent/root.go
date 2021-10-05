@@ -55,7 +55,7 @@ func Execute() {
 
 func init() {
 	rootCmd.SilenceUsage = true
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", true, "enable debug mode")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable debug mode")
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//utilruntime.Must(ipamv1alpha1.AddToScheme(scheme))

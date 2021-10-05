@@ -14,15 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package ipam
 
-var hPathElements = map[string][]string{
-	"/ipam": {
-		"ip-prefix",
-		"ip-range",
-		"ip-address",
-	},
-	"/ipam/ip-prefix":  {},
-	"/ipam/ip-range":   {},
-	"/ipam/ip-address": {},
-}
+const (
+	GnmiTarget = "dummy"
+	GnmiOrigin = "ipam"
+)

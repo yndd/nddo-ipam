@@ -14,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package connector
 
-var hPathElements = map[string][]string{
-	"/ipam": {
-		"ip-prefix",
-		"ip-range",
-		"ip-address",
-	},
-	"/ipam/ip-prefix":  {},
-	"/ipam/ip-range":   {},
-	"/ipam/ip-address": {},
+import "github.com/openconfig/gnmi/proto/gnmi"
+
+type Object struct {
+	Kind string
+	Key  string
+	Path *gnmi.Path
+	Data interface{}
 }

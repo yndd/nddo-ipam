@@ -25,7 +25,7 @@ func (n *NddoipamIpamRir) GetPrivate() bool {
 	return *n.Private
 }
 
-func (n *NddoipamIpamRir) GetAggregates() uint64 {
+func (n *NddoipamIpamRir) GetAggregates() uint32 {
 	if reflect.ValueOf(n.Aggregates).IsZero() {
 		return 0
 	}
@@ -44,7 +44,7 @@ func (n *NddoipamIpamRir) SetPrivate(s bool) {
 	n.Private = &s
 }
 
-func (n *NddoipamIpamRir) SetAggregates(s uint64) {
+func (n *NddoipamIpamRir) SetAggregates(s uint32) {
 	n.Aggregates = &s
 }
 

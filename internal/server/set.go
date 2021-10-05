@@ -24,6 +24,9 @@ import (
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/yndd/nddo-ipam/internal/connector"
+	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 )
 
 func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetResponse, error) {
@@ -45,52 +48,124 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 	log.Debug("Set")
 
 	if numReplaces > 0 {
-		resReplace, err := s.handler.GetResources(ResourceActionReplace, req.GetReplace())
-		s.ProcessUpdate(resReplace)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
-		}
-		for _, update := range req.GetReplace() {
-			var err error
-			s.schemaRaw, err = s.handler.Replace(s.schemaRaw, update)
+		updateObjects := make(map[string]*connector.Object)
+
+		for _, u := range req.GetReplace() {
+			//log.Debug("Replace", "Update", u)
+			n, err := s.GetConfigCache().GetNotificationFromUpdate(ipam.GnmiTarget, ipam.GnmiOrigin, u)
 			if err != nil {
+				log.Debug("GetNotificationFromUpdate Error", "Notification", n, "Error", err)
 				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+			}
+			//log.Debug("Replace", "Notification", n)
+			if n != nil {
+				if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
+					log.Debug("GnmiUpdate Error", "Notification", n, "Error", err)
+					return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+				}
+			}
+			// gather which resources need to be updated
+			resourceName, resourceKey, path := getResources2Update(u)
+			if path != nil {
+				if _, ok := updateObjects[resourceKey]; !ok {
+					updateObjects[resourceKey] = &connector.Object{
+						Kind: resourceName,
+						Key:  resourceKey,
+						Path: path,
+					}
+				}
+			}
+		}
+		// Update the connected processing engine with the updated resources
+		for _, o := range updateObjects {
+			d, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, o.Path)
+			if err != nil {
+				return nil, err
+			}
+			o.Data = d
+			if _, err := s.connector.Create(o); err != nil {
+				return nil, err
 			}
 		}
 	}
 
 	if numUpdates > 0 {
-		resUpdate, err := s.handler.GetResources(ResourceActionUpdate, req.GetUpdate())
-		s.ProcessUpdate(resUpdate)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
-		}
-		for _, update := range req.GetUpdate() {
-			var err error
-			s.schemaRaw, err = s.handler.Update(s.schemaRaw, update)
+		updateObjects := make(map[string]*connector.Object)
+
+		for _, u := range req.GetUpdate() {
+			n, err := s.GetConfigCache().GetNotificationFromUpdate(ipam.GnmiTarget, ipam.GnmiOrigin, u)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+			}
+			if n != nil {
+				if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
+					return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+				}
+			}
+			// gather which resources need to be updated
+			resourceName, resourceKey, path := getResources2Update(u)
+			if path != nil {
+				if _, ok := updateObjects[resourceKey]; !ok {
+					updateObjects[resourceKey] = &connector.Object{
+						Kind: resourceName,
+						Key:  resourceKey,
+						Path: path,
+					}
+				}
+			}
+		}
+		// Update the connected processing engine with the updated resources
+		for _, o := range updateObjects {
+			d, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, o.Path)
+			if err != nil {
+				return nil, err
+			}
+			o.Data = d
+			if _, err := s.connector.Update(o); err != nil {
+				return nil, err
 			}
 		}
 	}
 
 	if numDeletes > 0 {
-		resDelete, err := s.handler.GetResources2Delete(req.GetDelete())
-		s.ProcessDelete(resDelete)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
-		}
-		for _, path := range req.GetDelete() {
-			var err error
-			s.schemaRaw, err = s.handler.Delete(s.schemaRaw, path)
+		deleteObjects := make(map[string]*connector.Object)
+		for _, p := range req.GetDelete() {
+			n, err := s.GetConfigCache().GetNotificationFromDelete(ipam.GnmiTarget, ipam.GnmiOrigin, p)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+			}
+			if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+			}
+
+			// gather which resources need to be deleted
+			resourceName, resourceKey, path := getResources2Delete(p)
+			if path != nil {
+				if _, ok := deleteObjects[resourceKey]; !ok {
+					deleteObjects[resourceKey] = &connector.Object{
+						Kind: resourceName,
+						Key:  resourceKey,
+						Path: path,
+					}
+				}
+			}
+		}
+		// Update the connected processing engine with the deleted resources
+		for _, o := range deleteObjects {
+			if err := s.connector.Delete(o); err != nil {
+				return nil, err
 			}
 		}
 	}
 
-	log.Debug("Set Result Config Data", "schema", s.schemaRaw)
-	log.Debug("Set Result Status Data", "schema", s.GetSchema())
+	// TODO process updatePaths, deletePaths
+	// get JSON blobs
+	// process the updates -> update the status
+
+	cfg, _ := s.GetConfig()
+	state, _ := s.GetState()
+	log.Debug("Set Result Config Data", "schema", cfg)
+	log.Debug("Set Result Status Data", "schema", state)
 
 	return &gnmi.SetResponse{
 		Response: []*gnmi.UpdateResult{

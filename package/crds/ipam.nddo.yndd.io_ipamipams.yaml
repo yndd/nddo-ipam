@@ -207,6 +207,8 @@ spec:
                               type: string
                             description:
                               type: string
+                            last-update:
+                              type: string
                             network-instance:
                               type: string
                             prefix:
@@ -214,6 +216,8 @@ spec:
                             prefixes:
                               format: int32
                               type: integer
+                            reason:
+                              type: string
                             rir-name:
                               type: string
                             status:
@@ -286,6 +290,8 @@ spec:
                                 - tenant
                                 type: object
                               type: array
+                            last-update:
+                              type: string
                             nat-inside:
                               type: string
                             nat-outside:
@@ -293,6 +299,8 @@ spec:
                             network-instance:
                               type: string
                             origin:
+                              type: string
+                            reason:
                               type: string
                             status:
                               type: string
@@ -343,11 +351,31 @@ spec:
                               type: array
                             description:
                               type: string
+                            ip-prefix:
+                              items:
+                                description: NddoipamIpamIpPrefixIpPrefix struct
+                                properties:
+                                  network-instance:
+                                    type: string
+                                  prefix:
+                                    type: string
+                                  tenant:
+                                    type: string
+                                required:
+                                - network-instance
+                                - prefix
+                                - tenant
+                                type: object
+                              type: array
+                            last-update:
+                              type: string
                             network-instance:
                               type: string
                             pool:
                               type: boolean
                             prefix:
+                              type: string
+                            reason:
                               type: string
                             status:
                               type: string
@@ -413,7 +441,11 @@ spec:
                                 - tenant
                                 type: object
                               type: array
+                            last-update:
+                              type: string
                             network-instance:
+                              type: string
+                            reason:
                               type: string
                             size:
                               format: int32
@@ -448,7 +480,7 @@ spec:
                           description: NddoipamIpamRir struct
                           properties:
                             aggregates:
-                              format: int64
+                              format: int32
                               type: integer
                             description:
                               type: string

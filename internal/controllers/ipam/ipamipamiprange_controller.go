@@ -113,7 +113,116 @@ var resourceRefPathsIpamIprange = []*gnmi.Path{
 	},
 }
 var localleafRefIpamIprange = []*parser.LeafRefGnmi{}
-var externalLeafRefIpamIprange = []*parser.LeafRefGnmi{}
+var externalLeafRefIpamIprange = []*parser.LeafRefGnmi{
+	{
+		LocalPath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "ip-range"},
+				{Name: "aggregate", Key: map[string]string{
+					"prefix": "",
+				}},
+				{Name: "network-instance"},
+			},
+		},
+		RemotePath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "", Key: map[string]string{
+					"": "",
+				}},
+			},
+		},
+	},
+	{
+		LocalPath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "ip-range"},
+				{Name: "aggregate", Key: map[string]string{
+					"prefix": "",
+				}},
+				{Name: "prefix"},
+			},
+		},
+		RemotePath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "", Key: map[string]string{
+					"": "",
+				}},
+			},
+		},
+	},
+	{
+		LocalPath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "ip-range"},
+				{Name: "aggregate", Key: map[string]string{
+					"prefix": "",
+				}},
+				{Name: "tenant"},
+			},
+		},
+		RemotePath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "", Key: map[string]string{
+					"": "",
+				}},
+			},
+		},
+	},
+	{
+		LocalPath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "ip-range"},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": "",
+				}},
+				{Name: "network-instance"},
+			},
+		},
+		RemotePath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "", Key: map[string]string{
+					"": "",
+				}},
+			},
+		},
+	},
+	{
+		LocalPath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "ip-range"},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": "",
+				}},
+				{Name: "prefix"},
+			},
+		},
+		RemotePath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "", Key: map[string]string{
+					"": "",
+				}},
+			},
+		},
+	},
+	{
+		LocalPath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "ip-range"},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": "",
+				}},
+				{Name: "tenant"},
+			},
+		},
+		RemotePath: &gnmi.Path{
+			Elem: []*gnmi.PathElem{
+				{Name: "", Key: map[string]string{
+					"": "",
+				}},
+			},
+		},
+	},
+}
 
 // SetupIpamIprange adds a controller that reconciles IpamIpranges.
 func SetupIpamIprange(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string) (string, chan cevent.GenericEvent, error) {
@@ -358,6 +467,7 @@ func (e *externalIpamIprange) Observe(ctx context.Context, mg resource.Managed) 
 
 	// gnmi get request
 	req := &gnmi.GetRequest{
+		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Path:     rootPath,
 		Encoding: gnmi.Encoding_JSON,
 	}
@@ -388,6 +498,11 @@ func (e *externalIpamIprange) Observe(ctx context.Context, mg resource.Managed) 
 	//
 	//x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
 
+	//switch x := x1.(type) {
+	//case map[string]interface{}:
+	//	x1 = x["ip-range"]
+	//}
+
 	// validate gnmi resp information
 	var exists bool
 	var x2 interface{}
@@ -399,12 +514,13 @@ func (e *externalIpamIprange) Observe(ctx context.Context, mg resource.Managed) 
 				log.Debug("Observe response get value issue")
 				return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
 			}
+			//if x2 != nil {
+			//	exists = true
+			//}
 			switch x := x2.(type) {
 			case map[string]interface{}:
-				if x, ok := x["ip-range"]; ok {
-					if x != nil {
-						exists = true
-					}
+				if x["ip-range"] != nil {
+					exists = true
 				}
 			}
 		}
@@ -534,7 +650,7 @@ func (e *externalIpamIprange) Create(ctx context.Context, mg resource.Managed) (
 
 	updates := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamIprange)
 	for _, update := range updates {
-		log.Debug("Create Fine Grane Updates", "Path", update.Path, "Value", update.GetVal())
+		log.Debug("Create Fine Grane Updates", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
 	}
 
 	if len(updates) == 0 {
@@ -543,6 +659,7 @@ func (e *externalIpamIprange) Create(ctx context.Context, mg resource.Managed) (
 	}
 
 	req := &gnmi.SetRequest{
+		Prefix:  &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Replace: updates,
 	}
 
@@ -570,6 +687,7 @@ func (e *externalIpamIprange) Update(ctx context.Context, mg resource.Managed, o
 	}
 
 	req := &gnmi.SetRequest{
+		Prefix: &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Update: obs.ResourceUpdates,
 		Delete: obs.ResourceDeletes,
 	}
@@ -605,6 +723,7 @@ func (e *externalIpamIprange) Delete(ctx context.Context, mg resource.Managed) e
 	}
 
 	req := gnmi.SetRequest{
+		Prefix: &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Delete: rootPath,
 	}
 
@@ -623,6 +742,7 @@ func (e *externalIpamIprange) GetTarget() []string {
 func (e *externalIpamIprange) GetConfig(ctx context.Context) ([]byte, error) {
 	e.log.Debug("Get Config ...")
 	req := &gnmi.GetRequest{
+		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Path:     []*gnmi.Path{},
 		Encoding: gnmi.Encoding_JSON,
 	}

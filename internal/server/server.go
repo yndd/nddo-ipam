@@ -28,7 +28,10 @@ import (
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
+	"github.com/yndd/ndd-yang/pkg/cache"
+
+	"github.com/yndd/nddo-ipam/internal/connector"
+	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 )
 
@@ -77,15 +80,6 @@ func WithParser(log logging.Logger) ServerOption {
 	}
 }
 
-func WithHandler(log logging.Logger) ServerOption {
-	return func(s *Server) {
-		s.handler, _ = NewHandler(
-			WithHandlerLogger(log),
-			WithHandlerParser(log),
-		)
-	}
-}
-
 func WithKapi(a *kapi.Kapi) ServerOption {
 	return func(s *Server) {
 		s.client = a
@@ -98,6 +92,16 @@ func WithEventChannels(e map[string]chan event.GenericEvent) ServerOption {
 	}
 }
 
+func WithConnecter(c connector.Connector) ServerOption {
+	return func(s *Server) {
+		s.connector.Connector = c
+	}
+}
+
+type mrConnector struct {
+	connector.Connector
+}
+
 type Server struct {
 	gnmi.UnimplementedGNMIServer
 	cfg Config
@@ -107,15 +111,19 @@ type Server struct {
 	EventChannels map[string]chan event.GenericEvent
 
 	// schema
-	schemaRaw interface{}
-	schema    *ipamv1alpha1.Nddoipam
+	configCache *cache.Cache
+	stateCache  *cache.Cache
+	//schemaRaw interface{}
+	//schema    *ipamv1alpha1.Nddoipam
 	// gnmi calls
 	subscribeRPCsem *semaphore.Weighted
 	unaryRPCsem     *semaphore.Weighted
 	// logging and parsing
-	parser  *ynddparser.Parser
-	handler *Handler
-	log     logging.Logger
+	parser *ynddparser.Parser
+	//handler *Handler
+	log logging.Logger
+
+	connector mrConnector
 
 	// context
 	ctx context.Context
@@ -123,10 +131,12 @@ type Server struct {
 
 func NewServer(opts ...ServerOption) (*Server, error) {
 	s := &Server{
-		schemaRaw: nil,
-		//schemaRaw: make(map[string]interface{}),
+		configCache: cache.New([]string{ipam.GnmiTarget}),
+		stateCache:  cache.New([]string{ipam.GnmiTarget}),
+
+		//schemaRaw: nil,
 		// check if the resource has a key or not
-		schema: &ipamv1alpha1.Nddoipam{},
+		//schema: &ipamv1alpha1.Nddoipam{},
 		//	Topology: make([]*NddotopologyTopology, 0),
 		//},
 	}
@@ -137,30 +147,20 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 
 	s.ctx = context.Background()
 
-	// get the original status from the kubernetes api
-	nddoipam, err := s.client.ListNddoipam(s.ctx)
-	if err != nil {
+	// get the original status from k8s
+	if err := s.GetInitialState(); err != nil {
 		return nil, err
 	}
-	s.schema = nddoipam
-	if s.schema == nil {
-		s.schema = &ipamv1alpha1.Nddoipam{
-			Ipam: &ipamv1alpha1.NddoipamIpam{
-				Rir:       make([]*ipamv1alpha1.NddoipamIpamRir, 0),
-				Aggregate: make([]*ipamv1alpha1.NddoipamIpamAggregate, 0),
-				IpPrefix:  make([]*ipamv1alpha1.NddoipamIpamIpPrefix, 0),
-				IpRange:   make([]*ipamv1alpha1.NddoipamIpamIpRange, 0),
-				IpAddress: make([]*ipamv1alpha1.NddoipamIpamIpAddress, 0),
-			},
-		}
-	}
-	s.log.Debug("Schema Init", "schema", s.schema)
 
 	return s, nil
 }
 
-func (s *Server) GetSchema() *ipamv1alpha1.Nddoipam {
-	return s.schema
+func (s *Server) GetConfigCache() *cache.Cache {
+	return s.configCache
+}
+
+func (s *Server) GetStateCache() *cache.Cache {
+	return s.stateCache
 }
 
 func (s *Server) Run(ctx context.Context) error {
