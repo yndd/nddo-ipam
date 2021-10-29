@@ -1,0 +1,14 @@
+apiVersion: ipam.nddo.yndd.io/v1alpha1
+kind: IpamIpamTenantNetworkinstance
+metadata:
+  name: ipam-default
+  namespace: default
+spec:
+  active: true
+  networkNodeRef: 
+    name: dummy
+  forNetworkNode:
+    tenant-name: default
+    network-instance:
+      name: default
+      admin-state: enable

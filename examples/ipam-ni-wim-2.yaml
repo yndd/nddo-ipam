@@ -1,0 +1,14 @@
+apiVersion: ipam.nddo.yndd.io/v1alpha1
+kind: IpamIpamTenantNetworkinstance
+metadata:
+  name: ipam-ni-wim2
+  namespace: default
+spec:
+  active: true
+  networkNodeRef: 
+    name: dummy
+  forNetworkNode:
+    tenant-name: wim
+    network-instance:
+      name: ni-wim2
+      admin-state: enable

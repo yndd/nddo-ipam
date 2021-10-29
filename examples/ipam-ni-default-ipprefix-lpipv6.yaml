@@ -1,0 +1,17 @@
+apiVersion: ipam.nddo.yndd.io/v1alpha1
+kind: IpamIpamTenantNetworkinstanceIpprefix
+metadata:
+  name: ipam-default-ipprefix-lpbk-ipv6
+  namespace: default
+spec:
+  active: true
+  networkNodeRef: 
+    name: dummy
+  forNetworkNode:
+    tenant-name: default
+    network-instance-name: default
+    ip-prefix:
+      prefix: 3100:100::/48
+      tag:
+      - key: purpose
+        value: loopback

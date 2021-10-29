@@ -1,0 +1,16 @@
+apiVersion: ipam.nddo.yndd.io/v1alpha1
+kind: IpamIpam
+metadata:
+  name: ipam-test
+  namespace: default
+spec:
+  active: true
+  networkNodeRef: 
+    name: dummy
+  forNetworkNode:
+    ipam:
+      rir:
+      - name: rfc1918
+      - name: rfc6598
+      - name: ula
+      - name: ripe

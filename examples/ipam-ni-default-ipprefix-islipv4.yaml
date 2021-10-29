@@ -1,0 +1,17 @@
+apiVersion: ipam.nddo.yndd.io/v1alpha1
+kind: IpamIpamTenantNetworkinstanceIpprefix
+metadata:
+  name: ipam-default-ipprefix-isl-ipv4
+  namespace: default
+spec:
+  active: true
+  networkNodeRef: 
+    name: dummy
+  forNetworkNode:
+    tenant-name: default
+    network-instance-name: default
+    ip-prefix:
+      prefix: 100.64.0.0/16
+      tag:
+      - key: purpose
+        value: isl
