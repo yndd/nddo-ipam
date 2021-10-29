@@ -39,16 +39,20 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 
 	log := s.log.WithValues("Path", req.GetPath())
 
-	prefix := req.GetPrefix()
+	// we overwrite the gnmi prefix for now
+	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
 
 	// this is a debugging capability to show the config cache
+
 	if x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}}); err != nil {
 		return nil, err
 	} else {
 		log.Debug("Get gnmi...", "Data", x)
 	}
 
-	updates, err := s.HandleGet(req.GetPrefix(), req.GetPath())
+	//log.Debug("GNMI GET...")
+
+	updates, err := s.HandleGet(prefix, req.GetPath())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %s", err))
 	}
@@ -67,7 +71,12 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 func (s *Server) HandleGet(prefix *gnmi.Path, reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
 	//var err error
 	updates := make([]*gnmi.Update, 0)
-	if reqPaths == nil {
+
+	if reqPaths != nil {
+		s.log.Debug("HandleGet", "reqPaths", reqPaths, "len reqPaths", len(reqPaths[0].GetElem()))
+	}
+
+	if reqPaths == nil || len(reqPaths[0].GetElem()) == 0 {
 		x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
 		if err != nil {
 			return nil, err
