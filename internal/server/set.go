@@ -21,12 +21,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/yndd/nddo-ipam/internal/connector"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
+	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
 func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetResponse, error) {
@@ -45,127 +46,85 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 	}
 
 	log := s.log.WithValues("numUpdates", numUpdates, "numReplaces", numReplaces, "numDeletes", numDeletes)
-	log.Debug("Set")
+	prefix := req.GetPrefix()
+	log.Debug("Set", "prefix", prefix)
 
+	updateObjects := make(map[string]*gnmi.Path)
+	deleteObjects := make(map[string]*gnmi.Path)
 	if numReplaces > 0 {
-		updateObjects := make(map[string]*connector.Object)
-
 		for _, u := range req.GetReplace() {
-			//log.Debug("Replace", "Update", u)
-			n, err := s.GetConfigCache().GetNotificationFromUpdate(ipam.GnmiTarget, ipam.GnmiOrigin, u)
-			if err != nil {
-				log.Debug("GetNotificationFromUpdate Error", "Notification", n, "Error", err)
+			if err := s.UpdateConfigCache(prefix, u); err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
 			}
-			//log.Debug("Replace", "Notification", n)
-			if n != nil {
-				if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
-					log.Debug("GnmiUpdate Error", "Notification", n, "Error", err)
-					return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+			// handles config updates as a transaction aligned with the k8s crd controller
+			// aggregate all updates and map them to the resources in the application logic
+			//log.Debug("Replace Path", "Path", u.GetPath())
+			if pe := s.dispatcher.GetPathElem(u.GetPath()); pe != nil {
+				key, path := getPath2Process(u.GetPath(), pe)
+				//log.Debug("Replace Path", "Key", key, "path", path)
+				if _, ok := updateObjects[key]; !ok {
+					updateObjects[key] = path
 				}
-			}
-			// gather which resources need to be updated
-			resourceName, resourceKey, path := getResources2Update(u)
-			if path != nil {
-				if _, ok := updateObjects[resourceKey]; !ok {
-					updateObjects[resourceKey] = &connector.Object{
-						Kind: resourceName,
-						Key:  resourceKey,
-						Path: path,
-					}
-				}
-			}
-		}
-		// Update the connected processing engine with the updated resources
-		for _, o := range updateObjects {
-			d, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, o.Path)
-			if err != nil {
-				return nil, err
-			}
-			o.Data = d
-			if _, err := s.connector.Create(o); err != nil {
-				return nil, err
 			}
 		}
 	}
 
 	if numUpdates > 0 {
-		updateObjects := make(map[string]*connector.Object)
-
 		for _, u := range req.GetUpdate() {
-			n, err := s.GetConfigCache().GetNotificationFromUpdate(ipam.GnmiTarget, ipam.GnmiOrigin, u)
-			if err != nil {
+			if err := s.UpdateConfigCache(prefix, u); err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
 			}
-			if n != nil {
-				if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
-					return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+			// handles config updates as a transaction aligned with the k8s crd controller
+			// aggregate all updates and map them to the resources in the application logic
+			if pe := s.dispatcher.GetPathElem(u.GetPath()); pe != nil {
+				key, path := getPath2Process(u.GetPath(), pe)
+				if _, ok := updateObjects[key]; !ok {
+					updateObjects[key] = path
 				}
-			}
-			// gather which resources need to be updated
-			resourceName, resourceKey, path := getResources2Update(u)
-			if path != nil {
-				if _, ok := updateObjects[resourceKey]; !ok {
-					updateObjects[resourceKey] = &connector.Object{
-						Kind: resourceName,
-						Key:  resourceKey,
-						Path: path,
-					}
-				}
-			}
-		}
-		// Update the connected processing engine with the updated resources
-		for _, o := range updateObjects {
-			d, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, o.Path)
-			if err != nil {
-				return nil, err
-			}
-			o.Data = d
-			if _, err := s.connector.Update(o); err != nil {
-				return nil, err
 			}
 		}
 	}
 
 	if numDeletes > 0 {
-		deleteObjects := make(map[string]*connector.Object)
 		for _, p := range req.GetDelete() {
-			n, err := s.GetConfigCache().GetNotificationFromDelete(ipam.GnmiTarget, ipam.GnmiOrigin, p)
-			if err != nil {
+			if err := s.DeleteConfigCache(prefix, p); err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
 			}
-			if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
-			}
-
-			// gather which resources need to be deleted
-			resourceName, resourceKey, path := getResources2Delete(p)
-			if path != nil {
-				if _, ok := deleteObjects[resourceKey]; !ok {
-					deleteObjects[resourceKey] = &connector.Object{
-						Kind: resourceName,
-						Key:  resourceKey,
-						Path: path,
-					}
+			// handles config updates as a transaction aligned with the k8s crd controller
+			// aggregate all updates and map them to the resources in the application logic
+			if pe := s.dispatcher.GetPathElem(p); pe != nil {
+				key, path := getPath2Process(p, pe)
+				if _, ok := deleteObjects[key]; !ok {
+					deleteObjects[key] = path
 				}
 			}
 		}
-		// Update the connected processing engine with the deleted resources
-		for _, o := range deleteObjects {
-			if err := s.connector.Delete(o); err != nil {
-				return nil, err
+
+		// Delete the resources in the application logic as a single transaction
+		for _, path := range deleteObjects {
+			if _, err := s.root.HandleConfigEvent(dispatcher.OperationDelete, prefix, path.GetElem(), nil); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
 			}
 		}
 	}
 
-	// TODO process updatePaths, deletePaths
-	// get JSON blobs
-	// process the updates -> update the status
+	// Update the resources in the application logic as a single transaction
+	for _, path := range updateObjects {
+		// get the data from the cache as a big json blob
+		d, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, path)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, err := s.root.HandleConfigEvent(dispatcher.OperationUpdate, prefix, path.GetElem(), d); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
+		}
+	}
 
 	cfg, _ := s.GetConfig()
 	state, _ := s.GetState()
-	log.Debug("Set Result Config Data", "schema", cfg)
-	log.Debug("Set Result Status Data", "schema", state)
+	log.Debug("Set Result Final Config Data", "schema", cfg)
+	log.Debug("Set Result Final State  Data", "schema", state)
 
 	return &gnmi.SetResponse{
 		Response: []*gnmi.UpdateResult{
@@ -173,4 +132,60 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 				Timestamp: time.Now().UnixNano(),
 			},
 		}}, nil
+}
+
+func (s *Server) UpdateConfigCache(prefix *gnmi.Path, u *gnmi.Update) error {
+	//log.Debug("Replace", "Update", u)
+	n, err := s.GetConfigCache().GetNotificationFromUpdate(prefix, u)
+	if err != nil {
+		//log.Debug("GetNotificationFromUpdate Error", "Notification", n, "Error", err)
+		return err
+	}
+	//log.Debug("Replace", "Notification", n)
+	if n != nil {
+		if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
+			//log.Debug("GnmiUpdate Error", "Notification", n, "Error", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) DeleteConfigCache(prefix *gnmi.Path, p *gnmi.Path) error {
+	// delete from config cache
+	n, err := s.GetConfigCache().GetNotificationFromDelete(prefix, p)
+	if err != nil {
+		return err
+	}
+	if err := s.GetConfigCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
+		return err
+	}
+	return nil
+}
+
+// getPath2Process resolves the keys in the pathElem
+// returns the resolved path based on the pathElem returned from lpm cache lookup
+// returns the key which is using path.Strings where each element in the path.Strings
+// is delineated by a .
+func getPath2Process(p *gnmi.Path, pe []*gnmi.PathElem) (string, *gnmi.Path) {
+	newPathElem := make([]*gnmi.PathElem, 0)
+	var key string
+	for i, elem := range pe {
+		e := &gnmi.PathElem{
+			Name: elem.GetName(),
+		}
+		if len(p.GetElem()[i].GetKey()) != 0 {
+			e.Key = make(map[string]string)
+			for keyName, keyValue := range p.GetElem()[i].GetKey() {
+				e.Key[keyName] = keyValue
+			}
+		}
+		newPathElem = append(newPathElem, e)
+	}
+	newPath := &gnmi.Path{Elem: newPathElem}
+	stringlist := path.ToStrings(p, false)[:len(path.ToStrings(newPath, false))]
+	for _, s := range stringlist {
+		key = s + "."
+	}
+	return key, newPath
 }

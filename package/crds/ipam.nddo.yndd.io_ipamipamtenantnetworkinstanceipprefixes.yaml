@@ -6,17 +6,17 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: ipamipamipaddresses.ipam.nddo.yndd.io
+  name: ipamipamtenantnetworkinstanceipprefixes.ipam.nddo.yndd.io
 spec:
   group: ipam.nddo.yndd.io
   names:
     categories:
     - ndd
     - ipam
-    kind: IpamIpamIpaddress
-    listKind: IpamIpamIpaddressList
-    plural: ipamipamipaddresses
-    singular: ipamipamipaddress
+    kind: IpamIpamTenantNetworkinstanceIpprefix
+    listKind: IpamIpamTenantNetworkinstanceIpprefixList
+    plural: ipamipamtenantnetworkinstanceipprefixes
+    singular: ipamipamtenantnetworkinstanceipprefix
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -44,7 +44,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: IpamIpamIpaddress is the Schema for the IpamIpaddress API
+        description: IpamIpamTenantNetworkinstanceIpprefix is the Schema for the IpamTenantNetworkinstanceIpprefix
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -59,7 +60,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: A IpamIpaddressSpec defines the desired state of a IpamIpaddress.
+            description: A IpamTenantNetworkinstanceIpprefixSpec defines the desired
+              state of a IpamTenantNetworkinstanceIpprefix.
             properties:
               active:
                 default: true
@@ -76,14 +78,17 @@ spec:
                 - Delete
                 type: string
               forNetworkNode:
-                description: IpamIpaddressParameters are the parameter fields of a
-                  IpamIpaddress.
+                description: IpamTenantNetworkinstanceIpprefixParameters are the parameter
+                  fields of a IpamTenantNetworkinstanceIpprefix.
                 properties:
-                  ip-address:
-                    description: IpamIpaddress struct
+                  ip-prefix:
+                    description: IpamTenantNetworkinstanceIpprefix struct
                     properties:
-                      address:
-                        pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/(([0-9])|([1-2][0-9])|(3[0-2]))|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))(/(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))
+                      address-allocation-strategy:
+                        default: first-address
+                        enum:
+                        - first-address
+                        - last-address
                         type: string
                       admin-state:
                         default: enable
@@ -95,63 +100,16 @@ spec:
                         description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
                         pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
                         type: string
-                      dns-name:
+                      pool:
+                        type: boolean
+                      prefix:
+                        pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/(([0-9])|([1-2][0-9])|(3[0-2]))|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))(/(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))
                         type: string
-                      ip-prefix:
-                        items:
-                          description: IpamIpaddressIpPrefix struct
-                          properties:
-                            network-instance:
-                              type: string
-                            prefix:
-                              type: string
-                            tenant:
-                              type: string
-                          required:
-                          - network-instance
-                          - prefix
-                          - tenant
-                          type: object
-                        type: array
-                      ip-range:
-                        items:
-                          description: IpamIpaddressIpRange struct
-                          properties:
-                            end:
-                              type: string
-                            network-instance:
-                              type: string
-                            start:
-                              type: string
-                            tenant:
-                              type: string
-                          required:
-                          - end
-                          - network-instance
-                          - start
-                          - tenant
-                          type: object
-                        type: array
-                      nat-inside:
-                        pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))
-                        type: string
-                      nat-outside:
-                        pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))
-                        type: string
-                      network-instance:
-                        default: default
-                        description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                        pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                        type: string
-                      origin:
-                        enum:
-                        - dhcp
-                        - slaac
-                        - static
+                      rir-name:
                         type: string
                       tag:
                         items:
-                          description: IpamIpaddressTag struct
+                          description: IpamTenantNetworkinstanceIpprefixTag struct
                           properties:
                             key:
                               description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
@@ -165,12 +123,14 @@ spec:
                           - key
                           type: object
                         type: array
-                      tenant:
-                        default: default
-                        description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                        pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                        type: string
                     type: object
+                  network-instance-name:
+                    type: string
+                  tenant-name:
+                    type: string
+                required:
+                - network-instance-name
+                - tenant-name
                 type: object
               networkNodeRef:
                 default:
@@ -188,12 +148,12 @@ spec:
             - forNetworkNode
             type: object
           status:
-            description: A IpamIpaddressStatus represents the observed state of a
-              IpamIpaddress.
+            description: A IpamTenantNetworkinstanceIpprefixStatus represents the
+              observed state of a IpamTenantNetworkinstanceIpprefix.
             properties:
               atNetworkNode:
-                description: IpamIpaddressObservation are the observable fields of
-                  a IpamIpaddress.
+                description: IpamTenantNetworkinstanceIpprefixObservation are the
+                  observable fields of a IpamTenantNetworkinstanceIpprefix.
                 type: object
               conditions:
                 description: Conditions of the resource.

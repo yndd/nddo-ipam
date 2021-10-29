@@ -16,13 +16,19 @@ limitations under the License.
 
 package server
 
-var hPathElements = map[string][]string{
-	"/ipam": {
-		"ip-prefix",
-		"ip-range",
-		"ip-address",
+var hPathElements = map[string]interface{}{
+	"/ipam": map[string]interface{}{
+		"tenant": nil,
 	},
-	"/ipam/ip-prefix":  {},
-	"/ipam/ip-range":   {},
-	"/ipam/ip-address": {},
+	"/ipam/tenant": map[string]interface{}{
+		"network-instance": nil,
+	},
+	"/ipam/tenant/network-instance": map[string]interface{}{
+		"ip-prefix":  nil,
+		"ip-address": nil,
+		"ip-raange":  nil,
+	},
+	"/ipam/instance/network-instance/ip-prefix":  nil,
+	"/ipam/instance/network-instance/ip-range":   nil,
+	"/ipam/instance/network-instance/ip-address": nil,
 }

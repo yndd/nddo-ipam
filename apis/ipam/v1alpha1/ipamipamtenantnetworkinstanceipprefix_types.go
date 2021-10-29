@@ -25,14 +25,17 @@ import (
 )
 
 const (
-	// IpamIpprefixFinalizer is the name of the finalizer added to
-	// IpamIpprefix to block delete operations until the physical node can be
+	// IpamTenantNetworkinstanceIpprefixFinalizer is the name of the finalizer added to
+	// IpamTenantNetworkinstanceIpprefix to block delete operations until the physical node can be
 	// deprovisioned.
-	IpamIpprefixFinalizer string = "ipPrefix.ipam.nddo.yndd.io"
+	IpamTenantNetworkinstanceIpprefixFinalizer string = "ipPrefix.ipam.nddo.yndd.io"
 )
 
-// IpamIpprefix struct
-type IpamIpprefix struct {
+// IpamTenantNetworkinstanceIpprefix struct
+type IpamTenantNetworkinstanceIpprefix struct {
+	// +kubebuilder:validation:Enum=`first-address`;`last-address`
+	// +kubebuilder:default:="first-address"
+	AddressAllocationStrategy *string `json:"address-allocation-strategy,omitempty"`
 	// +kubebuilder:validation:Enum=`disable`;`enable`
 	// +kubebuilder:default:="enable"
 	AdminState *string `json:"admin-state,omitempty"`
@@ -41,43 +44,16 @@ type IpamIpprefix struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
 	Description *string `json:"description,omitempty"`
-	// kubebuilder:validation:MinLength=1
-	// kubebuilder:validation:MaxLength=255
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
-	// +kubebuilder:default:="default"
-	NetworkInstance *string                  `json:"network-instance,omitempty"`
-	Aggregate       []*IpamIpprefixAggregate `json:"aggregate,omitempty"`
-	IpPrefix        []*IpamIpprefixIpPrefix  `json:"ip-prefix,omitempty"`
-	Pool            *bool                    `json:"pool,omitempty"`
+	Pool        *bool   `json:"pool,omitempty"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Pattern=`(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/(([0-9])|([1-2][0-9])|(3[0-2]))|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))(/(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))`
-	Prefix *string            `json:"prefix"`
-	Tag    []*IpamIpprefixTag `json:"tag,omitempty"`
-	// kubebuilder:validation:MinLength=1
-	// kubebuilder:validation:MaxLength=255
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
-	// +kubebuilder:default:="default"
-	Tenant *string `json:"tenant,omitempty"`
+	Prefix  *string                                 `json:"prefix"`
+	RirName *string                                 `json:"rir-name,omitempty"`
+	Tag     []*IpamTenantNetworkinstanceIpprefixTag `json:"tag,omitempty"`
 }
 
-// IpamIpprefixAggregate struct
-type IpamIpprefixAggregate struct {
-	NetworkInstance *string `json:"network-instance"`
-	Prefix          *string `json:"prefix"`
-	Tenant          *string `json:"tenant"`
-}
-
-// IpamIpprefixIpPrefix struct
-type IpamIpprefixIpPrefix struct {
-	NetworkInstance *string `json:"network-instance"`
-	Prefix          *string `json:"prefix"`
-	Tenant          *string `json:"tenant"`
-}
-
-// IpamIpprefixTag struct
-type IpamIpprefixTag struct {
+// IpamTenantNetworkinstanceIpprefixTag struct
+type IpamTenantNetworkinstanceIpprefixTag struct {
 	// kubebuilder:validation:MinLength=1
 	// kubebuilder:validation:MaxLength=255
 	// +kubebuilder:validation:Required
@@ -90,30 +66,32 @@ type IpamIpprefixTag struct {
 	Value *string `json:"value,omitempty"`
 }
 
-// IpamIpprefixParameters are the parameter fields of a IpamIpprefix.
-type IpamIpprefixParameters struct {
-	IpamIpamIpprefix *IpamIpprefix `json:"ip-prefix,omitempty"`
+// IpamTenantNetworkinstanceIpprefixParameters are the parameter fields of a IpamTenantNetworkinstanceIpprefix.
+type IpamTenantNetworkinstanceIpprefixParameters struct {
+	TenantName                            *string                            `json:"tenant-name"`
+	NetworkInstanceName                   *string                            `json:"network-instance-name"`
+	IpamIpamTenantNetworkinstanceIpprefix *IpamTenantNetworkinstanceIpprefix `json:"ip-prefix,omitempty"`
 }
 
-// IpamIpprefixObservation are the observable fields of a IpamIpprefix.
-type IpamIpprefixObservation struct {
+// IpamTenantNetworkinstanceIpprefixObservation are the observable fields of a IpamTenantNetworkinstanceIpprefix.
+type IpamTenantNetworkinstanceIpprefixObservation struct {
 }
 
-// A IpamIpprefixSpec defines the desired state of a IpamIpprefix.
-type IpamIpprefixSpec struct {
+// A IpamTenantNetworkinstanceIpprefixSpec defines the desired state of a IpamTenantNetworkinstanceIpprefix.
+type IpamTenantNetworkinstanceIpprefixSpec struct {
 	nddv1.ResourceSpec `json:",inline"`
-	ForNetworkNode     IpamIpprefixParameters `json:"forNetworkNode"`
+	ForNetworkNode     IpamTenantNetworkinstanceIpprefixParameters `json:"forNetworkNode"`
 }
 
-// A IpamIpprefixStatus represents the observed state of a IpamIpprefix.
-type IpamIpprefixStatus struct {
+// A IpamTenantNetworkinstanceIpprefixStatus represents the observed state of a IpamTenantNetworkinstanceIpprefix.
+type IpamTenantNetworkinstanceIpprefixStatus struct {
 	nddv1.ResourceStatus `json:",inline"`
-	AtNetworkNode        IpamIpprefixObservation `json:"atNetworkNode,omitempty"`
+	AtNetworkNode        IpamTenantNetworkinstanceIpprefixObservation `json:"atNetworkNode,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// IpamIpamIpprefix is the Schema for the IpamIpprefix API
+// IpamIpamTenantNetworkinstanceIpprefix is the Schema for the IpamTenantNetworkinstanceIpprefix API
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="TARGET",type="string",JSONPath=".status.conditions[?(@.kind=='TargetFound')].status"
 // +kubebuilder:printcolumn:name="STATUS",type="string",JSONPath=".status.conditions[?(@.kind=='Ready')].status"
@@ -123,31 +101,31 @@ type IpamIpprefixStatus struct {
 // +kubebuilder:printcolumn:name="PARENTDEP",type="string",JSONPath=".status.conditions[?(@.kind=='ParentValidationSuccess')].status"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:resource:scope=Cluster,categories={ndd,ipam}
-type IpamIpamIpprefix struct {
+type IpamIpamTenantNetworkinstanceIpprefix struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IpamIpprefixSpec   `json:"spec,omitempty"`
-	Status IpamIpprefixStatus `json:"status,omitempty"`
+	Spec   IpamTenantNetworkinstanceIpprefixSpec   `json:"spec,omitempty"`
+	Status IpamTenantNetworkinstanceIpprefixStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// IpamIpamIpprefixList contains a list of IpamIpprefixs
-type IpamIpamIpprefixList struct {
+// IpamIpamTenantNetworkinstanceIpprefixList contains a list of IpamTenantNetworkinstanceIpprefixs
+type IpamIpamTenantNetworkinstanceIpprefixList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IpamIpamIpprefix `json:"items"`
+	Items           []IpamIpamTenantNetworkinstanceIpprefix `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&IpamIpamIpprefix{}, &IpamIpamIpprefixList{})
+	SchemeBuilder.Register(&IpamIpamTenantNetworkinstanceIpprefix{}, &IpamIpamTenantNetworkinstanceIpprefixList{})
 }
 
-// IpamIpprefix type metadata.
+// IpamTenantNetworkinstanceIpprefix type metadata.
 var (
-	IpamIpprefixKindKind         = reflect.TypeOf(IpamIpamIpprefix{}).Name()
-	IpamIpprefixGroupKind        = schema.GroupKind{Group: Group, Kind: IpamIpprefixKindKind}.String()
-	IpamIpprefixKindAPIVersion   = IpamIpprefixKindKind + "." + GroupVersion.String()
-	IpamIpprefixGroupVersionKind = GroupVersion.WithKind(IpamIpprefixKindKind)
+	IpamTenantNetworkinstanceIpprefixKindKind         = reflect.TypeOf(IpamIpamTenantNetworkinstanceIpprefix{}).Name()
+	IpamTenantNetworkinstanceIpprefixGroupKind        = schema.GroupKind{Group: Group, Kind: IpamTenantNetworkinstanceIpprefixKindKind}.String()
+	IpamTenantNetworkinstanceIpprefixKindAPIVersion   = IpamTenantNetworkinstanceIpprefixKindKind + "." + GroupVersion.String()
+	IpamTenantNetworkinstanceIpprefixGroupVersionKind = GroupVersion.WithKind(IpamTenantNetworkinstanceIpprefixKindKind)
 )

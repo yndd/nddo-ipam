@@ -36,7 +36,6 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/ratelimiter"
 
 	"github.com/yndd/nddo-ipam/internal/controllers"
-	"github.com/yndd/nddo-ipam/internal/intentlogic"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 	"github.com/yndd/nddo-ipam/internal/server"
 	//+kubebuilder:scaffold:imports
@@ -95,11 +94,34 @@ var startCmd = &cobra.Command{
 			return errors.Wrap(err, "Cannot create kubernetes client")
 		}
 
+		// initialize the config cache
+		//configcache := cache.New([]string{ipam.GnmiTarget})
+		//stateCache := cache.New([]string{ipam.GnmiTarget})
+		//ipam := ipamlogic.New()
+
+		// initialize the registered resources
+		/*
+			for kind, initializer := range intentlogic.Dispatcher {
+				intentlogic.ResourceDispatcher[kind] = initializer()
+				if err := intentlogic.ResourceDispatcher[kind].Init(
+					intentlogic.WithLogging(logging.NewLogrLogger(zlog.WithName("intentlogic"))),
+					intentlogic.WithStateCache(stateCache),
+					intentlogic.WithParser(logging.NewLogrLogger(zlog.WithName("intentlogic"))),
+					//intentlogic.WithServerPort(strconv.Itoa(pkgmetav1.GnmiServerPort)),
+					intentlogic.WithIpam(ipam),
+				); err != nil {
+					return errors.Wrap(err, "Cannot initialize resources")
+				}
+			}
+		*/
+
 		zlog.Info("Address", "grpcServerAddress", grpcServerAddress)
 		s, err := server.NewServer(
 			server.WithKapi(a),
 			server.WithEventChannels(eventChans),
 			server.WithServerLogger(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
+			//server.WithStateCache(stateCache),
+			//server.WithConfigCache(configcache),
 			server.WithServerConfig(
 				server.Config{
 					GrpcServerAddress: ":" + strconv.Itoa(pkgmetav1.GnmiServerPort),
@@ -108,7 +130,7 @@ var startCmd = &cobra.Command{
 				},
 			),
 			server.WithParser(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
-			server.WithConnecter(intentlogic.New(logging.NewLogrLogger(zlog.WithName("grpcserver")))),
+			//server.WithConnecter(intentlogic.New(logging.NewLogrLogger(zlog.WithName("grpcserver")))),
 		)
 		if err != nil {
 			return errors.Wrap(err, "unable to initialize server")

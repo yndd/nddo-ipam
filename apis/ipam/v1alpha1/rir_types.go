@@ -25,13 +25,6 @@ func (n *NddoipamIpamRir) GetPrivate() bool {
 	return *n.Private
 }
 
-func (n *NddoipamIpamRir) GetAggregates() uint32 {
-	if reflect.ValueOf(n.Aggregates).IsZero() {
-		return 0
-	}
-	return *n.Aggregates
-}
-
 func (n *NddoipamIpamRir) SetDescription(s string) {
 	n.Description = &s
 }
@@ -42,10 +35,6 @@ func (n *NddoipamIpamRir) SetName(s string) {
 
 func (n *NddoipamIpamRir) SetPrivate(s bool) {
 	n.Private = &s
-}
-
-func (n *NddoipamIpamRir) SetAggregates(s uint32) {
-	n.Aggregates = &s
 }
 
 func (n *NddoipamIpamRir) GetTags() []*NddoipamIpamRirTag {

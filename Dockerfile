@@ -15,7 +15,19 @@ COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags=-G=3 -a -o manager cmd/main.go
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+#FROM gcr.io/distroless/static:nonroot
+FROM alpine:latest
+RUN apk add --update && \
+    apk add --no-cache openssh && \
+    apk add curl && \
+    apk add tcpdump && \
+    apk add iperf3 &&\
+    apk add netcat-openbsd && \
+    apk add ethtool && \
+    apk add bonding && \
+    rm -rf /tmp/*/var/cache/apk/*
+
+RUN curl -sL https://github.com/karimra/gnmic/raw/master/install.sh | sh
 WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532

@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
+	github.com/k-sone/critbitgo v1.4.0
 	github.com/karimra/gnmic v0.19.0
 	github.com/mikioh/ipaddr v0.0.0-20190404000644-d465c8ab6721
 	github.com/openconfig/gnmi v0.0.0-20210914185457-51254b657b7d
@@ -11,7 +12,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/yndd/ndd-core v0.1.3
 	github.com/yndd/ndd-runtime v0.1.1
-	github.com/yndd/ndd-yang v0.1.145
+	github.com/yndd/ndd-yang v0.1.200
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.39.0
 	k8s.io/apimachinery v0.22.1

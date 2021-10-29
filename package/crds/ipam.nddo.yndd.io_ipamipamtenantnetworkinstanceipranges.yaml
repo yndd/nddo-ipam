@@ -6,17 +6,17 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: ipamipamipranges.ipam.nddo.yndd.io
+  name: ipamipamtenantnetworkinstanceipranges.ipam.nddo.yndd.io
 spec:
   group: ipam.nddo.yndd.io
   names:
     categories:
     - ndd
     - ipam
-    kind: IpamIpamIprange
-    listKind: IpamIpamIprangeList
-    plural: ipamipamipranges
-    singular: ipamipamiprange
+    kind: IpamIpamTenantNetworkinstanceIprange
+    listKind: IpamIpamTenantNetworkinstanceIprangeList
+    plural: ipamipamtenantnetworkinstanceipranges
+    singular: ipamipamtenantnetworkinstanceiprange
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -44,7 +44,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: IpamIpamIprange is the Schema for the IpamIprange API
+        description: IpamIpamTenantNetworkinstanceIprange is the Schema for the IpamTenantNetworkinstanceIprange
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -59,7 +60,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: A IpamIprangeSpec defines the desired state of a IpamIprange.
+            description: A IpamTenantNetworkinstanceIprangeSpec defines the desired
+              state of a IpamTenantNetworkinstanceIprange.
             properties:
               active:
                 default: true
@@ -76,33 +78,24 @@ spec:
                 - Delete
                 type: string
               forNetworkNode:
-                description: IpamIprangeParameters are the parameter fields of a IpamIprange.
+                description: IpamTenantNetworkinstanceIprangeParameters are the parameter
+                  fields of a IpamTenantNetworkinstanceIprange.
                 properties:
                   ip-range:
-                    description: IpamIprange struct
+                    description: IpamTenantNetworkinstanceIprange struct
                     properties:
+                      address-allocation-strategy:
+                        default: first-address
+                        enum:
+                        - first-address
+                        - last-address
+                        type: string
                       admin-state:
                         default: enable
                         enum:
                         - disable
                         - enable
                         type: string
-                      aggregate:
-                        items:
-                          description: IpamIprangeAggregate struct
-                          properties:
-                            network-instance:
-                              type: string
-                            prefix:
-                              type: string
-                            tenant:
-                              type: string
-                          required:
-                          - network-instance
-                          - prefix
-                          - tenant
-                          type: object
-                        type: array
                       description:
                         description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
                         pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
@@ -110,33 +103,12 @@ spec:
                       end:
                         pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))
                         type: string
-                      ip-prefix:
-                        items:
-                          description: IpamIprangeIpPrefix struct
-                          properties:
-                            network-instance:
-                              type: string
-                            prefix:
-                              type: string
-                            tenant:
-                              type: string
-                          required:
-                          - network-instance
-                          - prefix
-                          - tenant
-                          type: object
-                        type: array
-                      network-instance:
-                        default: default
-                        description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                        pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                        type: string
                       start:
                         pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))
                         type: string
                       tag:
                         items:
-                          description: IpamIprangeTag struct
+                          description: IpamTenantNetworkinstanceIprangeTag struct
                           properties:
                             key:
                               description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
@@ -150,12 +122,14 @@ spec:
                           - key
                           type: object
                         type: array
-                      tenant:
-                        default: default
-                        description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                        pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                        type: string
                     type: object
+                  network-instance-name:
+                    type: string
+                  tenant-name:
+                    type: string
+                required:
+                - network-instance-name
+                - tenant-name
                 type: object
               networkNodeRef:
                 default:
@@ -173,11 +147,12 @@ spec:
             - forNetworkNode
             type: object
           status:
-            description: A IpamIprangeStatus represents the observed state of a IpamIprange.
+            description: A IpamTenantNetworkinstanceIprangeStatus represents the observed
+              state of a IpamTenantNetworkinstanceIprange.
             properties:
               atNetworkNode:
-                description: IpamIprangeObservation are the observable fields of a
-                  IpamIprange.
+                description: IpamTenantNetworkinstanceIprangeObservation are the observable
+                  fields of a IpamTenantNetworkinstanceIprange.
                 type: object
               conditions:
                 description: Conditions of the resource.

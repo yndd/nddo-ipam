@@ -20,6 +20,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/openconfig/gnmi/match"
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
@@ -30,8 +31,9 @@ import (
 
 	"github.com/yndd/ndd-yang/pkg/cache"
 
-	"github.com/yndd/nddo-ipam/internal/connector"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
+	"github.com/yndd/nddo-ipam/internal/dispatcher"
+	"github.com/yndd/nddo-ipam/internal/ipamlogic"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 )
 
@@ -92,14 +94,16 @@ func WithEventChannels(e map[string]chan event.GenericEvent) ServerOption {
 	}
 }
 
-func WithConnecter(c connector.Connector) ServerOption {
+func WithConfigCache(c *cache.Cache) ServerOption {
 	return func(s *Server) {
-		s.connector.Connector = c
+		s.configCache = c
 	}
 }
 
-type mrConnector struct {
-	connector.Connector
+func WithStateCache(c *cache.Cache) ServerOption {
+	return func(s *Server) {
+		s.stateCache = c
+	}
 }
 
 type Server struct {
@@ -110,9 +114,13 @@ type Server struct {
 	client        *kapi.Kapi
 	EventChannels map[string]chan event.GenericEvent
 
+	// router
+	root       ipamlogic.Root
+	dispatcher *dispatcher.Dispatcher
 	// schema
 	configCache *cache.Cache
 	stateCache  *cache.Cache
+	m           *match.Match // only used for statecache for now -> TBD if we need to make this more
 	//schemaRaw interface{}
 	//schema    *ipamv1alpha1.Nddoipam
 	// gnmi calls
@@ -123,27 +131,40 @@ type Server struct {
 	//handler *Handler
 	log logging.Logger
 
-	connector mrConnector
-
 	// context
 	ctx context.Context
 }
 
 func NewServer(opts ...ServerOption) (*Server, error) {
 	s := &Server{
+		m:           match.New(),
 		configCache: cache.New([]string{ipam.GnmiTarget}),
 		stateCache:  cache.New([]string{ipam.GnmiTarget}),
-
-		//schemaRaw: nil,
-		// check if the resource has a key or not
-		//schema: &ipamv1alpha1.Nddoipam{},
-		//	Topology: make([]*NddotopologyTopology, 0),
-		//},
 	}
 
 	for _, opt := range opts {
 		opt(s)
 	}
+
+	// initialize the dispatcher
+	s.dispatcher = dispatcher.New()
+	// initialies the registered resource in the dtree
+	s.dispatcher.Init()
+
+	// intialize the root handler
+	var err error
+	s.root, err = ipamlogic.NewRoot(
+		ipamlogic.WithRootLogger(s.log),
+		ipamlogic.WithRootConfigCache(s.configCache),
+		ipamlogic.WithRootStateCache(s.stateCache),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// set cache event handlers
+	s.GetConfigCache().GetCache().SetClient(s.ConfigCacheEvents)
+	s.GetStateCache().GetCache().SetClient(s.StateCacheEvents)
 
 	s.ctx = context.Background()
 

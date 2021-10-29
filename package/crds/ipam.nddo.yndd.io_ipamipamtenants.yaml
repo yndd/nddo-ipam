@@ -6,17 +6,17 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: ipamipamipprefixes.ipam.nddo.yndd.io
+  name: ipamipamtenants.ipam.nddo.yndd.io
 spec:
   group: ipam.nddo.yndd.io
   names:
     categories:
     - ndd
     - ipam
-    kind: IpamIpamIpprefix
-    listKind: IpamIpamIpprefixList
-    plural: ipamipamipprefixes
-    singular: ipamipamipprefix
+    kind: IpamIpamTenant
+    listKind: IpamIpamTenantList
+    plural: ipamipamtenants
+    singular: ipamipamtenant
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -44,7 +44,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: IpamIpamIpprefix is the Schema for the IpamIpprefix API
+        description: IpamIpamTenant is the Schema for the IpamTenant API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -59,7 +59,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A IpamIpprefixSpec defines the desired state of a IpamIpprefix.
+            description: A IpamTenantSpec defines the desired state of a IpamTenant.
             properties:
               active:
                 default: true
@@ -76,11 +76,10 @@ spec:
                 - Delete
                 type: string
               forNetworkNode:
-                description: IpamIpprefixParameters are the parameter fields of a
-                  IpamIpprefix.
+                description: IpamTenantParameters are the parameter fields of a IpamTenant.
                 properties:
-                  ip-prefix:
-                    description: IpamIpprefix struct
+                  tenant:
+                    description: IpamTenant struct
                     properties:
                       admin-state:
                         default: enable
@@ -88,55 +87,18 @@ spec:
                         - disable
                         - enable
                         type: string
-                      aggregate:
-                        items:
-                          description: IpamIpprefixAggregate struct
-                          properties:
-                            network-instance:
-                              type: string
-                            prefix:
-                              type: string
-                            tenant:
-                              type: string
-                          required:
-                          - network-instance
-                          - prefix
-                          - tenant
-                          type: object
-                        type: array
                       description:
                         description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
                         pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
                         type: string
-                      ip-prefix:
-                        items:
-                          description: IpamIpprefixIpPrefix struct
-                          properties:
-                            network-instance:
-                              type: string
-                            prefix:
-                              type: string
-                            tenant:
-                              type: string
-                          required:
-                          - network-instance
-                          - prefix
-                          - tenant
-                          type: object
-                        type: array
-                      network-instance:
+                      name:
                         default: default
                         description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
                         pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
                         type: string
-                      pool:
-                        type: boolean
-                      prefix:
-                        pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/(([0-9])|([1-2][0-9])|(3[0-2]))|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))(/(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))
-                        type: string
                       tag:
                         items:
-                          description: IpamIpprefixTag struct
+                          description: IpamTenantTag struct
                           properties:
                             key:
                               description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
@@ -150,11 +112,6 @@ spec:
                           - key
                           type: object
                         type: array
-                      tenant:
-                        default: default
-                        description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                        pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                        type: string
                     type: object
                 type: object
               networkNodeRef:
@@ -173,11 +130,11 @@ spec:
             - forNetworkNode
             type: object
           status:
-            description: A IpamIpprefixStatus represents the observed state of a IpamIpprefix.
+            description: A IpamTenantStatus represents the observed state of a IpamTenant.
             properties:
               atNetworkNode:
-                description: IpamIpprefixObservation are the observable fields of
-                  a IpamIpprefix.
+                description: IpamTenantObservation are the observable fields of a
+                  IpamTenant.
                 type: object
               conditions:
                 description: Conditions of the resource.

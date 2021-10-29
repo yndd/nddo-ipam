@@ -81,57 +81,6 @@ spec:
                   ipam:
                     description: Ipam struct
                     properties:
-                      aggregate:
-                        items:
-                          description: IpamAggregate struct
-                          properties:
-                            admin-state:
-                              default: enable
-                              enum:
-                              - disable
-                              - enable
-                              type: string
-                            description:
-                              description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                              pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                              type: string
-                            network-instance:
-                              default: default
-                              description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                              pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                              type: string
-                            prefix:
-                              pattern: (([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/(([0-9])|([1-2][0-9])|(3[0-2]))|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))(/(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))
-                              type: string
-                            rir-name:
-                              type: string
-                            tag:
-                              items:
-                                description: IpamAggregateTag struct
-                                properties:
-                                  key:
-                                    description: kubebuilder:validation:MinLength=1
-                                      kubebuilder:validation:MaxLength=255
-                                    pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                                    type: string
-                                  value:
-                                    description: kubebuilder:validation:MinLength=1
-                                      kubebuilder:validation:MaxLength=255
-                                    pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                                    type: string
-                                required:
-                                - key
-                                type: object
-                              type: array
-                            tenant:
-                              default: default
-                              description: kubebuilder:validation:MinLength=1 kubebuilder:validation:MaxLength=255
-                              pattern: '[A-Za-z0-9 !@#$^&()|+=`~.,''/_:;?-]*'
-                              type: string
-                          required:
-                          - rir-name
-                          type: object
-                        type: array
                       rir:
                         items:
                           description: IpamRir struct
@@ -199,298 +148,291 @@ spec:
                   ipam:
                     description: NddoipamIpam struct
                     properties:
-                      aggregate:
-                        items:
-                          description: NddoipamIpamAggregate struct
-                          properties:
-                            admin-state:
-                              type: string
-                            description:
-                              type: string
-                            last-update:
-                              type: string
-                            network-instance:
-                              type: string
-                            prefix:
-                              type: string
-                            prefixes:
-                              format: int32
-                              type: integer
-                            reason:
-                              type: string
-                            rir-name:
-                              type: string
-                            status:
-                              type: string
-                            tag:
-                              items:
-                                description: NddoipamIpamAggregateTag struct
-                                properties:
-                                  key:
-                                    type: string
-                                  value:
-                                    type: string
-                                required:
-                                - key
-                                type: object
-                              type: array
-                            tenant:
-                              type: string
-                          required:
-                          - network-instance
-                          - prefix
-                          - rir-name
-                          - tenant
-                          type: object
-                        type: array
-                      ip-address:
-                        items:
-                          description: NddoipamIpamIpAddress struct
-                          properties:
-                            address:
-                              type: string
-                            admin-state:
-                              type: string
-                            description:
-                              type: string
-                            dns-name:
-                              type: string
-                            ip-prefix:
-                              items:
-                                description: NddoipamIpamIpAddressIpPrefix struct
-                                properties:
-                                  network-instance:
-                                    type: string
-                                  prefix:
-                                    type: string
-                                  tenant:
-                                    type: string
-                                required:
-                                - network-instance
-                                - prefix
-                                - tenant
-                                type: object
-                              type: array
-                            ip-range:
-                              items:
-                                description: NddoipamIpamIpAddressIpRange struct
-                                properties:
-                                  end:
-                                    type: string
-                                  network-instance:
-                                    type: string
-                                  start:
-                                    type: string
-                                  tenant:
-                                    type: string
-                                required:
-                                - end
-                                - network-instance
-                                - start
-                                - tenant
-                                type: object
-                              type: array
-                            last-update:
-                              type: string
-                            nat-inside:
-                              type: string
-                            nat-outside:
-                              type: string
-                            network-instance:
-                              type: string
-                            origin:
-                              type: string
-                            reason:
-                              type: string
-                            status:
-                              type: string
-                            tag:
-                              items:
-                                description: NddoipamIpamIpAddressTag struct
-                                properties:
-                                  key:
-                                    type: string
-                                  value:
-                                    type: string
-                                required:
-                                - key
-                                type: object
-                              type: array
-                            tenant:
-                              type: string
-                          required:
-                          - address
-                          - network-instance
-                          - tenant
-                          type: object
-                        type: array
-                      ip-prefix:
-                        items:
-                          description: NddoipamIpamIpPrefix struct
-                          properties:
-                            admin-state:
-                              type: string
-                            adresses:
-                              format: int32
-                              type: integer
-                            aggregate:
-                              items:
-                                description: NddoipamIpamIpPrefixAggregate struct
-                                properties:
-                                  network-instance:
-                                    type: string
-                                  prefix:
-                                    type: string
-                                  tenant:
-                                    type: string
-                                required:
-                                - network-instance
-                                - prefix
-                                - tenant
-                                type: object
-                              type: array
-                            description:
-                              type: string
-                            ip-prefix:
-                              items:
-                                description: NddoipamIpamIpPrefixIpPrefix struct
-                                properties:
-                                  network-instance:
-                                    type: string
-                                  prefix:
-                                    type: string
-                                  tenant:
-                                    type: string
-                                required:
-                                - network-instance
-                                - prefix
-                                - tenant
-                                type: object
-                              type: array
-                            last-update:
-                              type: string
-                            network-instance:
-                              type: string
-                            pool:
-                              type: boolean
-                            prefix:
-                              type: string
-                            reason:
-                              type: string
-                            status:
-                              type: string
-                            tag:
-                              items:
-                                description: NddoipamIpamIpPrefixTag struct
-                                properties:
-                                  key:
-                                    type: string
-                                  value:
-                                    type: string
-                                required:
-                                - key
-                                type: object
-                              type: array
-                            tenant:
-                              type: string
-                          required:
-                          - network-instance
-                          - prefix
-                          - tenant
-                          type: object
-                        type: array
-                      ip-range:
-                        items:
-                          description: NddoipamIpamIpRange struct
-                          properties:
-                            admin-state:
-                              type: string
-                            aggregate:
-                              items:
-                                description: NddoipamIpamIpRangeAggregate struct
-                                properties:
-                                  network-instance:
-                                    type: string
-                                  prefix:
-                                    type: string
-                                  tenant:
-                                    type: string
-                                required:
-                                - network-instance
-                                - prefix
-                                - tenant
-                                type: object
-                              type: array
-                            description:
-                              type: string
-                            end:
-                              type: string
-                            ip-prefix:
-                              items:
-                                description: NddoipamIpamIpRangeIpPrefix struct
-                                properties:
-                                  network-instance:
-                                    type: string
-                                  prefix:
-                                    type: string
-                                  tenant:
-                                    type: string
-                                required:
-                                - network-instance
-                                - prefix
-                                - tenant
-                                type: object
-                              type: array
-                            last-update:
-                              type: string
-                            network-instance:
-                              type: string
-                            reason:
-                              type: string
-                            size:
-                              format: int32
-                              type: integer
-                            start:
-                              type: string
-                            status:
-                              type: string
-                            tag:
-                              items:
-                                description: NddoipamIpamIpRangeTag struct
-                                properties:
-                                  key:
-                                    type: string
-                                  value:
-                                    type: string
-                                required:
-                                - key
-                                type: object
-                              type: array
-                            tenant:
-                              type: string
-                          required:
-                          - end
-                          - network-instance
-                          - start
-                          - tenant
-                          type: object
-                        type: array
                       rir:
                         items:
                           description: NddoipamIpamRir struct
                           properties:
-                            aggregates:
-                              format: int32
-                              type: integer
                             description:
                               type: string
                             name:
                               type: string
+                            prefixes:
+                              format: int32
+                              type: integer
                             private:
                               type: boolean
                             tag:
                               items:
                                 description: NddoipamIpamRirTag struct
+                                properties:
+                                  key:
+                                    type: string
+                                  value:
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                              type: array
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      tenant:
+                        items:
+                          description: NddoipamIpamTenant struct
+                          properties:
+                            admin-state:
+                              type: string
+                            description:
+                              type: string
+                            last-update:
+                              type: string
+                            name:
+                              type: string
+                            network-instance:
+                              items:
+                                description: NddoipamIpamTenantNetworkInstance struct
+                                properties:
+                                  address-allocation-strategy:
+                                    type: string
+                                  admin-state:
+                                    type: string
+                                  description:
+                                    type: string
+                                  ip-address:
+                                    items:
+                                      description: NddoipamIpamTenantNetworkInstanceIpAddress
+                                        struct
+                                      properties:
+                                        address:
+                                          type: string
+                                        address-allocation-strategy:
+                                          type: string
+                                        admin-state:
+                                          type: string
+                                        description:
+                                          type: string
+                                        dns-name:
+                                          type: string
+                                        ip-prefix:
+                                          items:
+                                            description: NddoipamIpamTenantNetworkInstanceIpAddressIpPrefix
+                                              struct
+                                            properties:
+                                              prefix:
+                                                type: string
+                                            required:
+                                            - prefix
+                                            type: object
+                                          type: array
+                                        ip-range:
+                                          items:
+                                            description: NddoipamIpamTenantNetworkInstanceIpAddressIpRange
+                                              struct
+                                            properties:
+                                              end:
+                                                type: string
+                                              start:
+                                                type: string
+                                            required:
+                                            - end
+                                            - start
+                                            type: object
+                                          type: array
+                                        last-update:
+                                          type: string
+                                        nat-inside:
+                                          type: string
+                                        nat-outside:
+                                          type: string
+                                        origin:
+                                          type: string
+                                        reason:
+                                          type: string
+                                        status:
+                                          type: string
+                                        tag:
+                                          items:
+                                            description: NddoipamIpamTenantNetworkInstanceIpAddressTag
+                                              struct
+                                            properties:
+                                              key:
+                                                type: string
+                                              value:
+                                                type: string
+                                            required:
+                                            - key
+                                            type: object
+                                          type: array
+                                      required:
+                                      - address
+                                      type: object
+                                    type: array
+                                  ip-prefix:
+                                    items:
+                                      description: NddoipamIpamTenantNetworkInstanceIpPrefix
+                                        struct
+                                      properties:
+                                        address-allocation-strategy:
+                                          type: string
+                                        admin-state:
+                                          type: string
+                                        adresses:
+                                          format: int32
+                                          type: integer
+                                        child:
+                                          description: NddoipamIpamTenantNetworkInstanceIpPrefixChild
+                                            struct
+                                          properties:
+                                            ip-prefix:
+                                              items:
+                                                description: NddoipamIpamTenantNetworkInstanceIpPrefixChildIpPrefix
+                                                  struct
+                                                properties:
+                                                  prefix:
+                                                    type: string
+                                                required:
+                                                - prefix
+                                                type: object
+                                              type: array
+                                          type: object
+                                        description:
+                                          type: string
+                                        last-update:
+                                          type: string
+                                        parent:
+                                          description: NddoipamIpamTenantNetworkInstanceIpPrefixParent
+                                            struct
+                                          properties:
+                                            ip-prefix:
+                                              items:
+                                                description: NddoipamIpamTenantNetworkInstanceIpPrefixParentIpPrefix
+                                                  struct
+                                                properties:
+                                                  prefix:
+                                                    type: string
+                                                required:
+                                                - prefix
+                                                type: object
+                                              type: array
+                                          type: object
+                                        pool:
+                                          type: boolean
+                                        prefix:
+                                          type: string
+                                        reason:
+                                          type: string
+                                        rir-name:
+                                          type: string
+                                        status:
+                                          type: string
+                                        tag:
+                                          items:
+                                            description: NddoipamIpamTenantNetworkInstanceIpPrefixTag
+                                              struct
+                                            properties:
+                                              key:
+                                                type: string
+                                              value:
+                                                type: string
+                                            required:
+                                            - key
+                                            type: object
+                                          type: array
+                                      required:
+                                      - prefix
+                                      type: object
+                                    type: array
+                                  ip-range:
+                                    items:
+                                      description: NddoipamIpamTenantNetworkInstanceIpRange
+                                        struct
+                                      properties:
+                                        address-allocation-strategy:
+                                          type: string
+                                        admin-state:
+                                          type: string
+                                        description:
+                                          type: string
+                                        end:
+                                          type: string
+                                        last-update:
+                                          type: string
+                                        parent:
+                                          description: NddoipamIpamTenantNetworkInstanceIpRangeParent
+                                            struct
+                                          properties:
+                                            ip-prefix:
+                                              items:
+                                                description: NddoipamIpamTenantNetworkInstanceIpRangeParentIpPrefix
+                                                  struct
+                                                properties:
+                                                  prefix:
+                                                    type: string
+                                                required:
+                                                - prefix
+                                                type: object
+                                              type: array
+                                          type: object
+                                        reason:
+                                          type: string
+                                        size:
+                                          format: int32
+                                          type: integer
+                                        start:
+                                          type: string
+                                        status:
+                                          type: string
+                                        tag:
+                                          items:
+                                            description: NddoipamIpamTenantNetworkInstanceIpRangeTag
+                                              struct
+                                            properties:
+                                              key:
+                                                type: string
+                                              value:
+                                                type: string
+                                            required:
+                                            - key
+                                            type: object
+                                          type: array
+                                      required:
+                                      - end
+                                      - start
+                                      type: object
+                                    type: array
+                                  last-update:
+                                    type: string
+                                  name:
+                                    type: string
+                                  reason:
+                                    type: string
+                                  status:
+                                    type: string
+                                  tag:
+                                    items:
+                                      description: NddoipamIpamTenantNetworkInstanceTag
+                                        struct
+                                      properties:
+                                        key:
+                                          type: string
+                                        value:
+                                          type: string
+                                      required:
+                                      - key
+                                      type: object
+                                    type: array
+                                required:
+                                - name
+                                type: object
+                              type: array
+                            reason:
+                              type: string
+                            status:
+                              type: string
+                            tag:
+                              items:
+                                description: NddoipamIpamTenantTag struct
                                 properties:
                                   key:
                                     type: string

@@ -22,35 +22,53 @@ package v1alpha1
 
 import resource "github.com/yndd/ndd-runtime/pkg/resource"
 
-// GetItems of this IpamIpamIpaddressList.
-func (l *IpamIpamIpaddressList) GetItems() []resource.Managed {
-	items := make([]resource.Managed, len(l.Items))
-	for i := range l.Items {
-		items[i] = &l.Items[i]
-	}
-	return items
-}
-
-// GetItems of this IpamIpamIpprefixList.
-func (l *IpamIpamIpprefixList) GetItems() []resource.Managed {
-	items := make([]resource.Managed, len(l.Items))
-	for i := range l.Items {
-		items[i] = &l.Items[i]
-	}
-	return items
-}
-
-// GetItems of this IpamIpamIprangeList.
-func (l *IpamIpamIprangeList) GetItems() []resource.Managed {
-	items := make([]resource.Managed, len(l.Items))
-	for i := range l.Items {
-		items[i] = &l.Items[i]
-	}
-	return items
-}
-
 // GetItems of this IpamIpamList.
 func (l *IpamIpamList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}
+
+// GetItems of this IpamIpamTenantList.
+func (l *IpamIpamTenantList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}
+
+// GetItems of this IpamIpamTenantNetworkinstanceIpaddressList.
+func (l *IpamIpamTenantNetworkinstanceIpaddressList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}
+
+// GetItems of this IpamIpamTenantNetworkinstanceIpprefixList.
+func (l *IpamIpamTenantNetworkinstanceIpprefixList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}
+
+// GetItems of this IpamIpamTenantNetworkinstanceIprangeList.
+func (l *IpamIpamTenantNetworkinstanceIprangeList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}
+
+// GetItems of this IpamIpamTenantNetworkinstanceList.
+func (l *IpamIpamTenantNetworkinstanceList) GetItems() []resource.Managed {
 	items := make([]resource.Managed, len(l.Items))
 	for i := range l.Items {
 		items[i] = &l.Items[i]

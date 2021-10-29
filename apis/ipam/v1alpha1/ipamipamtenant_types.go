@@ -25,31 +25,33 @@ import (
 )
 
 const (
-	// IpamFinalizer is the name of the finalizer added to
-	// Ipam to block delete operations until the physical node can be
+	// IpamTenantFinalizer is the name of the finalizer added to
+	// IpamTenant to block delete operations until the physical node can be
 	// deprovisioned.
-	IpamFinalizer string = "ipam.ipam.nddo.yndd.io"
+	IpamTenantFinalizer string = "tenant.ipam.nddo.yndd.io"
 )
 
-// Ipam struct
-type Ipam struct {
-	Rir []*IpamRir `json:"rir,omitempty"`
-}
-
-// IpamRir struct
-type IpamRir struct {
+// IpamTenant struct
+type IpamTenant struct {
+	// +kubebuilder:validation:Enum=`disable`;`enable`
+	// +kubebuilder:default:="enable"
+	AdminState *string `json:"admin-state,omitempty"`
 	// kubebuilder:validation:MinLength=1
 	// kubebuilder:validation:MaxLength=255
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
 	Description *string `json:"description,omitempty"`
-	// +kubebuilder:validation:Enum=`afrinic`;`apnic`;`arin`;`lacnic`;`rfc1918`;`rfc6598`;`ripe`;`ula`
-	Name *string       `json:"name"`
-	Tag  []*IpamRirTag `json:"tag,omitempty"`
+	// kubebuilder:validation:MinLength=1
+	// kubebuilder:validation:MaxLength=255
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
+	// +kubebuilder:default:="default"
+	Name *string          `json:"name,omitempty"`
+	Tag  []*IpamTenantTag `json:"tag,omitempty"`
 }
 
-// IpamRirTag struct
-type IpamRirTag struct {
+// IpamTenantTag struct
+type IpamTenantTag struct {
 	// kubebuilder:validation:MinLength=1
 	// kubebuilder:validation:MaxLength=255
 	// +kubebuilder:validation:Required
@@ -62,31 +64,30 @@ type IpamRirTag struct {
 	Value *string `json:"value,omitempty"`
 }
 
-// IpamParameters are the parameter fields of a Ipam.
-type IpamParameters struct {
-	IpamIpam *Ipam `json:"ipam,omitempty"`
+// IpamTenantParameters are the parameter fields of a IpamTenant.
+type IpamTenantParameters struct {
+	IpamIpamTenant *IpamTenant `json:"tenant,omitempty"`
 }
 
-// IpamObservation are the observable fields of a Ipam.
-type IpamObservation struct {
-	*Nddoipam `json:",inline"`
+// IpamTenantObservation are the observable fields of a IpamTenant.
+type IpamTenantObservation struct {
 }
 
-// A IpamSpec defines the desired state of a Ipam.
-type IpamSpec struct {
+// A IpamTenantSpec defines the desired state of a IpamTenant.
+type IpamTenantSpec struct {
 	nddv1.ResourceSpec `json:",inline"`
-	ForNetworkNode     IpamParameters `json:"forNetworkNode"`
+	ForNetworkNode     IpamTenantParameters `json:"forNetworkNode"`
 }
 
-// A IpamStatus represents the observed state of a Ipam.
-type IpamStatus struct {
+// A IpamTenantStatus represents the observed state of a IpamTenant.
+type IpamTenantStatus struct {
 	nddv1.ResourceStatus `json:",inline"`
-	AtNetworkNode        IpamObservation `json:"atNetworkNode,omitempty"`
+	AtNetworkNode        IpamTenantObservation `json:"atNetworkNode,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// IpamIpam is the Schema for the Ipam API
+// IpamIpamTenant is the Schema for the IpamTenant API
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="TARGET",type="string",JSONPath=".status.conditions[?(@.kind=='TargetFound')].status"
 // +kubebuilder:printcolumn:name="STATUS",type="string",JSONPath=".status.conditions[?(@.kind=='Ready')].status"
@@ -96,31 +97,31 @@ type IpamStatus struct {
 // +kubebuilder:printcolumn:name="PARENTDEP",type="string",JSONPath=".status.conditions[?(@.kind=='ParentValidationSuccess')].status"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:resource:scope=Cluster,categories={ndd,ipam}
-type IpamIpam struct {
+type IpamIpamTenant struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IpamSpec   `json:"spec,omitempty"`
-	Status IpamStatus `json:"status,omitempty"`
+	Spec   IpamTenantSpec   `json:"spec,omitempty"`
+	Status IpamTenantStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// IpamIpamList contains a list of Ipams
-type IpamIpamList struct {
+// IpamIpamTenantList contains a list of IpamTenants
+type IpamIpamTenantList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IpamIpam `json:"items"`
+	Items           []IpamIpamTenant `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&IpamIpam{}, &IpamIpamList{})
+	SchemeBuilder.Register(&IpamIpamTenant{}, &IpamIpamTenantList{})
 }
 
-// Ipam type metadata.
+// IpamTenant type metadata.
 var (
-	IpamKindKind         = reflect.TypeOf(IpamIpam{}).Name()
-	IpamGroupKind        = schema.GroupKind{Group: Group, Kind: IpamKindKind}.String()
-	IpamKindAPIVersion   = IpamKindKind + "." + GroupVersion.String()
-	IpamGroupVersionKind = GroupVersion.WithKind(IpamKindKind)
+	IpamTenantKindKind         = reflect.TypeOf(IpamIpamTenant{}).Name()
+	IpamTenantGroupKind        = schema.GroupKind{Group: Group, Kind: IpamTenantKindKind}.String()
+	IpamTenantKindAPIVersion   = IpamTenantKindKind + "." + GroupVersion.String()
+	IpamTenantGroupVersionKind = GroupVersion.WithKind(IpamTenantKindKind)
 )

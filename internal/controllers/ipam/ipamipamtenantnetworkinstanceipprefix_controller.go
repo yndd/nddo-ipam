@@ -46,62 +46,29 @@ import (
 
 const (
 	// Errors
-	errUnexpectedIpamIpaddress       = "the managed resource is not a IpamIpaddress resource"
-	errKubeUpdateFailedIpamIpaddress = "cannot update IpamIpaddress"
-	errReadIpamIpaddress             = "cannot read IpamIpaddress"
-	errCreateIpamIpaddress           = "cannot create IpamIpaddress"
-	erreUpdateIpamIpaddress          = "cannot update IpamIpaddress"
-	errDeleteIpamIpaddress           = "cannot delete IpamIpaddress"
+	errUnexpectedIpamTenantNetworkinstanceIpprefix       = "the managed resource is not a IpamTenantNetworkinstanceIpprefix resource"
+	errKubeUpdateFailedIpamTenantNetworkinstanceIpprefix = "cannot update IpamTenantNetworkinstanceIpprefix"
+	errReadIpamTenantNetworkinstanceIpprefix             = "cannot read IpamTenantNetworkinstanceIpprefix"
+	errCreateIpamTenantNetworkinstanceIpprefix           = "cannot create IpamTenantNetworkinstanceIpprefix"
+	erreUpdateIpamTenantNetworkinstanceIpprefix          = "cannot update IpamTenantNetworkinstanceIpprefix"
+	errDeleteIpamTenantNetworkinstanceIpprefix           = "cannot delete IpamTenantNetworkinstanceIpprefix"
 
 	// resource information
-	// resourcePrefixIpamIpaddress = "ipam.nddo.yndd.io.v1alpha1.IpamIpaddress"
+	// resourcePrefixIpamTenantNetworkinstanceIpprefix = "ipam.nddo.yndd.io.v1alpha1.IpamTenantNetworkinstanceIpprefix"
 )
 
-var resourceRefPathsIpamIpaddress = []*gnmi.Path{
+var resourceRefPathsIpamTenantNetworkinstanceIpprefix = []*gnmi.Path{
 	{
 		Elem: []*gnmi.PathElem{
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
-			}},
 			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
+				"prefix": "",
 			}},
 		},
 	},
 	{
 		Elem: []*gnmi.PathElem{
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
-			}},
-			{Name: "ip-range", Key: map[string]string{
-				"end":              "",
-				"network-instance": "",
-				"start":            "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
 			}},
 			{Name: "tag", Key: map[string]string{
 				"key": "",
@@ -109,124 +76,13 @@ var resourceRefPathsIpamIpaddress = []*gnmi.Path{
 		},
 	},
 }
-var localleafRefIpamIpaddress = []*parser.LeafRefGnmi{}
-var externalLeafRefIpamIpaddress = []*parser.LeafRefGnmi{
+var localleafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
+var externalLeafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{
 	{
 		LocalPath: &gnmi.Path{
 			Elem: []*gnmi.PathElem{
-				{Name: "ip-address"},
-				{Name: "ip-prefix", Key: map[string]string{
-					"prefix": "",
-				}},
-				{Name: "network-instance"},
-			},
-		},
-		RemotePath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "", Key: map[string]string{
-					"": "",
-				}},
-			},
-		},
-	},
-	{
-		LocalPath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "ip-address"},
-				{Name: "ip-prefix", Key: map[string]string{
-					"prefix": "",
-				}},
-				{Name: "prefix"},
-			},
-		},
-		RemotePath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "", Key: map[string]string{
-					"": "",
-				}},
-			},
-		},
-	},
-	{
-		LocalPath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "ip-address"},
-				{Name: "ip-prefix", Key: map[string]string{
-					"prefix": "",
-				}},
-				{Name: "tenant"},
-			},
-		},
-		RemotePath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "", Key: map[string]string{
-					"": "",
-				}},
-			},
-		},
-	},
-	{
-		LocalPath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "ip-address"},
-				{Name: "ip-range", Key: map[string]string{
-					"end": "",
-				}},
-				{Name: "end"},
-			},
-		},
-		RemotePath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "", Key: map[string]string{
-					"": "",
-				}},
-			},
-		},
-	},
-	{
-		LocalPath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "ip-address"},
-				{Name: "ip-range", Key: map[string]string{
-					"end": "",
-				}},
-				{Name: "network-instance"},
-			},
-		},
-		RemotePath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "", Key: map[string]string{
-					"": "",
-				}},
-			},
-		},
-	},
-	{
-		LocalPath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "ip-address"},
-				{Name: "ip-range", Key: map[string]string{
-					"end": "",
-				}},
-				{Name: "start"},
-			},
-		},
-		RemotePath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "", Key: map[string]string{
-					"": "",
-				}},
-			},
-		},
-	},
-	{
-		LocalPath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "ip-address"},
-				{Name: "ip-range", Key: map[string]string{
-					"end": "",
-				}},
-				{Name: "tenant"},
+				{Name: "ip-prefix"},
+				{Name: "rir-name"},
 			},
 		},
 		RemotePath: &gnmi.Path{
@@ -239,30 +95,30 @@ var externalLeafRefIpamIpaddress = []*parser.LeafRefGnmi{
 	},
 }
 
-// SetupIpamIpaddress adds a controller that reconciles IpamIpaddresss.
-func SetupIpamIpaddress(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string) (string, chan cevent.GenericEvent, error) {
+// SetupIpamTenantNetworkinstanceIpprefix adds a controller that reconciles IpamTenantNetworkinstanceIpprefixs.
+func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string) (string, chan cevent.GenericEvent, error) {
 
-	name := managed.ControllerName(ipamv1alpha1.IpamIpaddressGroupKind)
+	name := managed.ControllerName(ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupKind)
 
 	events := make(chan cevent.GenericEvent)
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(ipamv1alpha1.IpamIpaddressGroupVersionKind),
-		managed.WithExternalConnecter(&connectorIpamIpaddress{
+		resource.ManagedKind(ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupVersionKind),
+		managed.WithExternalConnecter(&connectorIpamTenantNetworkinstanceIpprefix{
 			log:         l,
 			kube:        mgr.GetClient(),
 			usage:       resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
 			newClientFn: target.NewTarget},
 		),
 		managed.WithParser(l),
-		managed.WithValidator(&validatorIpamIpaddress{log: l, parser: *parser.NewParser(parser.WithLogger(l))}),
+		managed.WithValidator(&validatorIpamTenantNetworkinstanceIpprefix{log: l, parser: *parser.NewParser(parser.WithLogger(l))}),
 		managed.WithLogger(l.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
-	return ipamv1alpha1.IpamIpaddressGroupKind, events, ctrl.NewControllerManagedBy(mgr).
+	return ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupKind, events, ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o).
-		For(&ipamv1alpha1.IpamIpamIpaddress{}).
+		For(&ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix{}).
 		WithEventFilter(resource.IgnoreUpdateWithoutGenerationChangePredicate()).
 		Watches(
 			&source.Channel{Source: events},
@@ -271,19 +127,19 @@ func SetupIpamIpaddress(mgr ctrl.Manager, o controller.Options, l logging.Logger
 		Complete(r)
 }
 
-type validatorIpamIpaddress struct {
+type validatorIpamTenantNetworkinstanceIpprefix struct {
 	log    logging.Logger
 	parser parser.Parser
 }
 
-func (v *validatorIpamIpaddress) ValidateLocalleafRef(ctx context.Context, mg resource.Managed) (managed.ValidateLocalleafRefObservation, error) {
+func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateLocalleafRef(ctx context.Context, mg resource.Managed) (managed.ValidateLocalleafRefObservation, error) {
 	log := v.log.WithValues("resource", mg.GetName())
 	log.Debug("ValidateLocalleafRef...")
 
 	// json unmarshal the resource
-	o, ok := mg.(*ipamv1alpha1.IpamIpamIpaddress)
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
-		return managed.ValidateLocalleafRefObservation{}, errors.New(errUnexpectedIpamIpaddress)
+		return managed.ValidateLocalleafRefObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	d, err := json.Marshal(&o.Spec.ForNetworkNode)
 	if err != nil {
@@ -294,7 +150,7 @@ func (v *validatorIpamIpaddress) ValidateLocalleafRef(ctx context.Context, mg re
 
 	// For local leafref validation we dont need to supply the external data so we use nil
 	success, resultleafRefValidation, err := v.parser.ValidateLeafRefGnmi(
-		parser.LeafRefValidationLocal, x1, nil, localleafRefIpamIpaddress, log)
+		parser.LeafRefValidationLocal, x1, nil, localleafRefIpamTenantNetworkinstanceIpprefix, log)
 	if err != nil {
 		return managed.ValidateLocalleafRefObservation{
 			Success: false,
@@ -312,14 +168,14 @@ func (v *validatorIpamIpaddress) ValidateLocalleafRef(ctx context.Context, mg re
 		ResolvedLeafRefs: resultleafRefValidation}, nil
 }
 
-func (v *validatorIpamIpaddress) ValidateExternalleafRef(ctx context.Context, mg resource.Managed, cfg []byte) (managed.ValidateExternalleafRefObservation, error) {
+func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateExternalleafRef(ctx context.Context, mg resource.Managed, cfg []byte) (managed.ValidateExternalleafRefObservation, error) {
 	log := v.log.WithValues("resource", mg.GetName())
 	log.Debug("ValidateExternalleafRef...")
 
 	// json unmarshal the resource
-	o, ok := mg.(*ipamv1alpha1.IpamIpamIpaddress)
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
-		return managed.ValidateExternalleafRefObservation{}, errors.New(errUnexpectedIpamIpaddress)
+		return managed.ValidateExternalleafRefObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	d, err := json.Marshal(&o.Spec.ForNetworkNode)
 	if err != nil {
@@ -335,7 +191,7 @@ func (v *validatorIpamIpaddress) ValidateExternalleafRef(ctx context.Context, mg
 	// For local external leafref validation we need to supply the external
 	// data to validate the remote leafref, we use x2 for this
 	success, resultleafRefValidation, err := v.parser.ValidateLeafRefGnmi(
-		parser.LeafRefValidationExternal, x1, x2, externalLeafRefIpamIpaddress, log)
+		parser.LeafRefValidationExternal, x1, x2, externalLeafRefIpamTenantNetworkinstanceIpprefix, log)
 	if err != nil {
 		return managed.ValidateExternalleafRefObservation{
 			Success: false,
@@ -353,12 +209,48 @@ func (v *validatorIpamIpaddress) ValidateExternalleafRef(ctx context.Context, mg
 		ResolvedLeafRefs: resultleafRefValidation}, nil
 }
 
-func (v *validatorIpamIpaddress) ValidateParentDependency(ctx context.Context, mg resource.Managed, cfg []byte) (managed.ValidateParentDependencyObservation, error) {
+func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateParentDependency(ctx context.Context, mg resource.Managed, cfg []byte) (managed.ValidateParentDependencyObservation, error) {
 	log := v.log.WithValues("resource", mg.GetName())
 	log.Debug("ValidateParentDependency...")
 
 	// we initialize a global list for finer information on the resolution
 	resultleafRefValidation := make([]*parser.ResolvedLeafRefGnmi, 0)
+	// json unmarshal the resource
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
+	if !ok {
+		return managed.ValidateParentDependencyObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
+	}
+
+	dependencyLeafRef := []*parser.LeafRefGnmi{
+		{
+			RemotePath: &gnmi.Path{
+				Elem: []*gnmi.PathElem{
+					{Name: "ipam"},
+					{Name: "tenant", Key: map[string]string{"name": *o.Spec.ForNetworkNode.TenantName}},
+					{Name: "network-instance", Key: map[string]string{"name": *o.Spec.ForNetworkNode.NetworkInstanceName}},
+				},
+			},
+		},
+	}
+
+	// unmarshal the config
+	var x1 interface{}
+	json.Unmarshal(cfg, &x1)
+	//log.Debug("Latest Config", "data", x1)
+
+	success, resultleafRefValidation, err := v.parser.ValidateParentDependency(
+		x1, dependencyLeafRef, log)
+	if err != nil {
+		return managed.ValidateParentDependencyObservation{
+			Success: false,
+		}, nil
+	}
+	if !success {
+		log.Debug("ValidateParentDependency failed", "resultParentValidation", resultleafRefValidation)
+		return managed.ValidateParentDependencyObservation{
+			Success:          false,
+			ResolvedLeafRefs: resultleafRefValidation}, nil
+	}
 	log.Debug("ValidateParentDependency success", "resultParentValidation", resultleafRefValidation)
 	return managed.ValidateParentDependencyObservation{
 		Success:          true,
@@ -367,13 +259,13 @@ func (v *validatorIpamIpaddress) ValidateParentDependency(ctx context.Context, m
 
 // ValidateResourceIndexes validates if the indexes of a resource got changed
 // if so we need to delete the original resource, because it will be dangling if we dont delete it
-func (v *validatorIpamIpaddress) ValidateResourceIndexes(ctx context.Context, mg resource.Managed) (managed.ValidateResourceIndexesObservation, error) {
+func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateResourceIndexes(ctx context.Context, mg resource.Managed) (managed.ValidateResourceIndexesObservation, error) {
 	log := v.log.WithValues("resource", mg.GetName())
 
 	// json unmarshal the resource
-	o, ok := mg.(*ipamv1alpha1.IpamIpamIpaddress)
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
-		return managed.ValidateResourceIndexesObservation{}, errors.New(errUnexpectedIpamIpaddress)
+		return managed.ValidateResourceIndexesObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	log.Debug("ValidateResourceIndexes", "Spec", o.Spec)
 
@@ -381,10 +273,14 @@ func (v *validatorIpamIpaddress) ValidateResourceIndexes(ctx context.Context, mg
 		{
 			Elem: []*gnmi.PathElem{
 				{Name: "ipam"},
-				{Name: "ip-address", Key: map[string]string{
-					"tenant":           *o.Spec.ForNetworkNode.IpamIpamIpaddress.Tenant,
-					"network-instance": *o.Spec.ForNetworkNode.IpamIpamIpaddress.NetworkInstance,
-					"address":          *o.Spec.ForNetworkNode.IpamIpamIpaddress.Address,
+				{Name: "tenant", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.TenantName,
+				}},
+				{Name: "network-instance", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
+				}},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
 				}},
 			},
 		},
@@ -404,7 +300,7 @@ func (v *validatorIpamIpaddress) ValidateResourceIndexes(ctx context.Context, mg
 
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
-type connectorIpamIpaddress struct {
+type connectorIpamTenantNetworkinstanceIpprefix struct {
 	log         logging.Logger
 	kube        client.Client
 	usage       resource.Tracker
@@ -416,7 +312,7 @@ type connectorIpamIpaddress struct {
 // 1. Tracking that the managed resource is using a NetworkNode.
 // 2. Getting the managed resource's NetworkNode with connection details
 // A resource is mapped to a single target
-func (c *connectorIpamIpaddress) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+func (c *connectorIpamTenantNetworkinstanceIpprefix) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
 	log := c.log.WithValues("resource", mg.GetName())
 	log.Debug("Connect")
 
@@ -443,12 +339,12 @@ func (c *connectorIpamIpaddress) Connect(ctx context.Context, mg resource.Manage
 	// while here the object is mapped to a single target/network node
 	tns := []string{"localGNMIServer"}
 
-	return &externalIpamIpaddress{client: cl, targets: tns, log: log, parser: *parser.NewParser(parser.WithLogger(log))}, nil
+	return &externalIpamTenantNetworkinstanceIpprefix{client: cl, targets: tns, log: log, parser: *parser.NewParser(parser.WithLogger(log))}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
-type externalIpamIpaddress struct {
+type externalIpamTenantNetworkinstanceIpprefix struct {
 	//client  config.ConfigurationClient
 	client  *target.Target
 	targets []string
@@ -456,10 +352,10 @@ type externalIpamIpaddress struct {
 	parser  parser.Parser
 }
 
-func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	o, ok := mg.(*ipamv1alpha1.IpamIpamIpaddress)
+func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errUnexpectedIpamIpaddress)
+		return managed.ExternalObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	log := e.log.WithValues("Resource", o.GetName())
 	log.Debug("Observing ...")
@@ -469,10 +365,14 @@ func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed
 		{
 			Elem: []*gnmi.PathElem{
 				{Name: "ipam"},
-				{Name: "ip-address", Key: map[string]string{
-					"tenant":           *o.Spec.ForNetworkNode.IpamIpamIpaddress.Tenant,
-					"network-instance": *o.Spec.ForNetworkNode.IpamIpamIpaddress.NetworkInstance,
-					"address":          *o.Spec.ForNetworkNode.IpamIpamIpaddress.Address,
+				{Name: "tenant", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.TenantName,
+				}},
+				{Name: "network-instance", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
+				}},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
 				}},
 			},
 		},
@@ -488,7 +388,7 @@ func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed
 	// gnmi get response
 	resp, err := e.client.Get(ctx, req)
 	if err != nil {
-		return managed.ExternalObservation{}, errors.Wrap(err, errReadIpamIpaddress)
+		return managed.ExternalObservation{}, errors.Wrap(err, errReadIpamTenantNetworkinstanceIpprefix)
 	}
 
 	// prepare the input data to compare against the response data
@@ -505,15 +405,29 @@ func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed
 	// they are used in the provider for parent dependency resolution
 	// but are not relevant in the data, they are referenced in the rootPath
 	// when interacting with the device driver
-	//hids := make([]string, 0)
+	hids := make([]string, 0)
 	//
 	//
 	//
-	//x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
+	//hids = append(hids, "network-instance-name")
+	//
+	//
+	//
+	//
+	//
+	//hids = append(hids, "tenant-name")
+	//
+	//
+	//
+	//
+	//
+	hids = append(hids, "tenant-name")
+	hids = append(hids, "network-instance-name")
+	x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
 
 	//switch x := x1.(type) {
 	//case map[string]interface{}:
-	//	x1 = x["ip-address"]
+	//	x1 = x["ip-prefix"]
 	//}
 
 	// validate gnmi resp information
@@ -532,7 +446,7 @@ func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed
 			//}
 			switch x := x2.(type) {
 			case map[string]interface{}:
-				if x["ip-address"] != nil {
+				if x["ip-prefix"] != nil {
 					exists = true
 				}
 			}
@@ -564,7 +478,7 @@ func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed
 		return managed.ExternalObservation{}, errors.Wrap(err, errWrongInputdata)
 	}
 
-	updatesx1 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamIpaddress)
+	updatesx1 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
 	for _, update := range updatesx1 {
 		log.Debug("Observe Fine Grane Updates X1", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
 	}
@@ -575,7 +489,7 @@ func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed
 	if err != nil {
 		return managed.ExternalObservation{}, errors.Wrap(err, errWrongInputdata)
 	}
-	updatesx2 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x2, resourceRefPathsIpamIpaddress)
+	updatesx2 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x2, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
 	for _, update := range updatesx2 {
 		log.Debug("Observe Fine Grane Updates X2", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
 	}
@@ -615,10 +529,10 @@ func (e *externalIpamIpaddress) Observe(ctx context.Context, mg resource.Managed
 
 }
 
-func (e *externalIpamIpaddress) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	o, ok := mg.(*ipamv1alpha1.IpamIpamIpaddress)
+func (e *externalIpamTenantNetworkinstanceIpprefix) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errUnexpectedIpamIpaddress)
+		return managed.ExternalCreation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	log := e.log.WithValues("Resource", o.GetName())
 	log.Debug("Creating ...")
@@ -627,10 +541,14 @@ func (e *externalIpamIpaddress) Create(ctx context.Context, mg resource.Managed)
 		{
 			Elem: []*gnmi.PathElem{
 				{Name: "ipam"},
-				{Name: "ip-address", Key: map[string]string{
-					"tenant":           *o.Spec.ForNetworkNode.IpamIpamIpaddress.Tenant,
-					"network-instance": *o.Spec.ForNetworkNode.IpamIpamIpaddress.NetworkInstance,
-					"address":          *o.Spec.ForNetworkNode.IpamIpamIpaddress.Address,
+				{Name: "tenant", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.TenantName,
+				}},
+				{Name: "network-instance", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
+				}},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
 				}},
 			},
 		},
@@ -651,6 +569,8 @@ func (e *externalIpamIpaddress) Create(ctx context.Context, mg resource.Managed)
 	// but are not relevant in the data, they are referenced in the rootPath
 	// when interacting with the device driver
 	hids := make([]string, 0)
+	hids = append(hids, "network-instance-name")
+	hids = append(hids, "tenant-name")
 	x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
 	// for lists with keys we need to create a list before calulating the paths since this is what
 	// the object eventually happens to be based upon. We avoid having multiple entries in a list object
@@ -660,7 +580,7 @@ func (e *externalIpamIpaddress) Create(ctx context.Context, mg resource.Managed)
 		return managed.ExternalCreation{}, errors.Wrap(err, errWrongInputdata)
 	}
 
-	updates := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamIpaddress)
+	updates := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
 	for _, update := range updates {
 		log.Debug("Create Fine Grane Updates", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
 	}
@@ -677,16 +597,16 @@ func (e *externalIpamIpaddress) Create(ctx context.Context, mg resource.Managed)
 
 	_, err = e.client.Set(ctx, req)
 	if err != nil {
-		return managed.ExternalCreation{}, errors.Wrap(err, errCreateIpamIpaddress)
+		return managed.ExternalCreation{}, errors.Wrap(err, errCreateIpamTenantNetworkinstanceIpprefix)
 	}
 
 	return managed.ExternalCreation{}, nil
 }
 
-func (e *externalIpamIpaddress) Update(ctx context.Context, mg resource.Managed, obs managed.ExternalObservation) (managed.ExternalUpdate, error) {
-	o, ok := mg.(*ipamv1alpha1.IpamIpamIpaddress)
+func (e *externalIpamTenantNetworkinstanceIpprefix) Update(ctx context.Context, mg resource.Managed, obs managed.ExternalObservation) (managed.ExternalUpdate, error) {
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errUnexpectedIpamIpaddress)
+		return managed.ExternalUpdate{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	log := e.log.WithValues("Resource", o.GetName())
 	log.Debug("Updating ...")
@@ -706,16 +626,16 @@ func (e *externalIpamIpaddress) Update(ctx context.Context, mg resource.Managed,
 
 	_, err := e.client.Set(ctx, req)
 	if err != nil {
-		return managed.ExternalUpdate{}, errors.Wrap(err, errReadIpamIpaddress)
+		return managed.ExternalUpdate{}, errors.Wrap(err, errReadIpamTenantNetworkinstanceIpprefix)
 	}
 
 	return managed.ExternalUpdate{}, nil
 }
 
-func (e *externalIpamIpaddress) Delete(ctx context.Context, mg resource.Managed) error {
-	o, ok := mg.(*ipamv1alpha1.IpamIpamIpaddress)
+func (e *externalIpamTenantNetworkinstanceIpprefix) Delete(ctx context.Context, mg resource.Managed) error {
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
-		return errors.New(errUnexpectedIpamIpaddress)
+		return errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	log := e.log.WithValues("Resource", o.GetName())
 	log.Debug("Deleting ...")
@@ -724,10 +644,14 @@ func (e *externalIpamIpaddress) Delete(ctx context.Context, mg resource.Managed)
 		{
 			Elem: []*gnmi.PathElem{
 				{Name: "ipam"},
-				{Name: "ip-address", Key: map[string]string{
-					"tenant":           *o.Spec.ForNetworkNode.IpamIpamIpaddress.Tenant,
-					"network-instance": *o.Spec.ForNetworkNode.IpamIpamIpaddress.NetworkInstance,
-					"address":          *o.Spec.ForNetworkNode.IpamIpamIpaddress.Address,
+				{Name: "tenant", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.TenantName,
+				}},
+				{Name: "network-instance", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
+				}},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
 				}},
 			},
 		},
@@ -740,17 +664,17 @@ func (e *externalIpamIpaddress) Delete(ctx context.Context, mg resource.Managed)
 
 	_, err := e.client.Set(ctx, &req)
 	if err != nil {
-		return errors.Wrap(err, errDeleteIpamIpaddress)
+		return errors.Wrap(err, errDeleteIpamTenantNetworkinstanceIpprefix)
 	}
 
 	return nil
 }
 
-func (e *externalIpamIpaddress) GetTarget() []string {
+func (e *externalIpamTenantNetworkinstanceIpprefix) GetTarget() []string {
 	return e.targets
 }
 
-func (e *externalIpamIpaddress) GetConfig(ctx context.Context) ([]byte, error) {
+func (e *externalIpamTenantNetworkinstanceIpprefix) GetConfig(ctx context.Context) ([]byte, error) {
 	e.log.Debug("Get Config ...")
 	req := &gnmi.GetRequest{
 		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
@@ -781,6 +705,6 @@ func (e *externalIpamIpaddress) GetConfig(ctx context.Context) ([]byte, error) {
 	return nil, nil
 }
 
-func (e *externalIpamIpaddress) GetResourceName(ctx context.Context, path []*gnmi.Path) (string, error) {
+func (e *externalIpamTenantNetworkinstanceIpprefix) GetResourceName(ctx context.Context, path []*gnmi.Path) (string, error) {
 	return "", nil
 }

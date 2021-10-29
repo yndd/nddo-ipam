@@ -26,14 +26,6 @@ import (
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 )
 
-const (
-	ResourceNameRir       = "rir"
-	ResourceNameAggregate = "aggregate"
-	ResourceNameIpPrefix  = "ip-prefix"
-	ResourceNameIpRange   = "ip-range"
-	ResourceNameIpAddress = "ip-address"
-)
-
 func (s *Server) GetInitialState() error {
 	nddoipam, err := s.client.ListNddoipam(s.ctx)
 	if err != nil {
@@ -62,10 +54,12 @@ func (s *Server) GetInitialState() error {
 		},
 	}
 
+	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
+
 	updates := s.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], s.parser.XpathToGnmiPath("/", 0), x1, resourceRefPaths)
 	for _, u := range updates {
 		s.log.Debug("Observe Fine Grane Updates X1", "Path", s.parser.GnmiPathToXPath(u.Path, true), "Value", u.GetVal())
-		n, err := s.GetStateCache().GetNotificationFromUpdate(ipam.GnmiTarget, ipam.GnmiOrigin, u)
+		n, err := s.GetStateCache().GetNotificationFromUpdate(prefix, u)
 		if err != nil {
 			s.log.Debug("GetNotificationFromUpdate Error", "Notification", n, "Error", err)
 			return err
@@ -82,7 +76,8 @@ func (s *Server) GetInitialState() error {
 }
 
 func (s *Server) GetConfig() (*ipamv1alpha1.Ipam, error) {
-	x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: []*gnmi.PathElem{}})
+	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
+	x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +94,8 @@ func (s *Server) GetConfig() (*ipamv1alpha1.Ipam, error) {
 }
 
 func (s *Server) GetState() (*ipamv1alpha1.Nddoipam, error) {
-	x, err := s.GetStateCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: []*gnmi.PathElem{}})
+	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
+	x, err := s.GetStateCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
 	if err != nil {
 		return nil, err
 	}
@@ -115,51 +111,130 @@ func (s *Server) GetState() (*ipamv1alpha1.Nddoipam, error) {
 	return &n, nil
 }
 
-func getResources2Update(u *gnmi.Update) (string, string, *gnmi.Path) {
-	if len(u.GetPath().GetElem()) > 1 {
-		switch {
-		case u.GetPath().GetElem()[1].GetName() == ResourceNameRir ||
-			u.GetPath().GetElem()[1].GetName() == ResourceNameAggregate ||
-			u.GetPath().GetElem()[1].GetName() == ResourceNameIpPrefix ||
-			u.GetPath().GetElem()[1].GetName() == ResourceNameIpRange ||
-			u.GetPath().GetElem()[1].GetName() == ResourceNameIpAddress:
+func getPath2process(p *gnmi.Path) (string, *gnmi.Path) {
+	pathlen := len(p.GetElem())
+	switch {
+	case pathlen > 3:
+		// ip-prefix, ip-range, ip-address
+		pathElem := p.GetElem()[3].GetName()
+		if pathElem == "ip-prefix" || pathElem == "ip-range" || pathElem == "ip-address" {
+			return getKeyString(p.GetElem()[3].GetKey()), &gnmi.Path{
+				Elem: p.GetElem()[:4], // we cut the path
+			}
+		}
+	case pathlen > 2:
+		// network-instance
+		pathElem := p.GetElem()[2].GetName()
+		if pathElem == "network-instance" {
+			return getKeyString(p.GetElem()[2].GetKey()), &gnmi.Path{
+				Elem: p.GetElem()[:3], // we cut the path
+			}
+		}
+	case pathlen > 1:
+		// rir or tenant
+		pathElem := p.GetElem()[1].GetName()
+		if pathElem == "rir" || pathElem == "tenant" {
+			return getKeyString(p.GetElem()[1].GetKey()), &gnmi.Path{
+				Elem: p.GetElem()[:2], // we cut the path
+			}
+		}
+	case pathlen == 1:
+		// ipam
+		pathElem := p.GetElem()[0].GetName()
+		if pathElem == "ipam" {
+			return getKeyString(p.GetElem()[0].GetKey()), &gnmi.Path{
+				Elem: p.GetElem()[:1], // we cut the path
+			}
+		}
+	}
+	return "", nil
+}
 
-			// the key is at place 2 of the pathElem for all resources
-			return u.GetPath().GetElem()[1].GetName(),
+/*
+func getResources2Update(u *gnmi.Update) (intentlogic.ResourceKind, string, *gnmi.Path) {
+	// The order is important since we first want to check from the lowest level
+	if len(u.GetPath().GetElem()) > 3 {
+		// ip-address, ip-prefix, ip-range
+		// the key is at place 4
+		if _, ok := intentlogic.Dispatcher[u.GetPath().GetElem()[3].GetName()]; ok {
+			return intentlogic.String2ResourceKind(u.GetPath().GetElem()[3].GetName()),
+				getKeyString(u.GetPath().GetElem()[3].GetKey()),
+				&gnmi.Path{
+					Elem: u.GetPath().GetElem()[:4], // we cut the path
+				}
+		}
+	}
+	if len(u.GetPath().GetElem()) > 2 {
+		// network-instance
+		// the key is at place 3
+		if _, ok := intentlogic.Dispatcher[u.GetPath().GetElem()[2].GetName()]; ok {
+			return intentlogic.String2ResourceKind(u.GetPath().GetElem()[2].GetName()),
+				getKeyString(u.GetPath().GetElem()[2].GetKey()),
+				&gnmi.Path{
+					Elem: u.GetPath().GetElem()[:3], // we cut the path
+				}
+		}
+	}
+	if len(u.GetPath().GetElem()) > 1 {
+		// rir
+		// the key is at place 2 of the pathElem for all resources
+		// if there is a match in the dispatcher we can return a resource
+		if _, ok := intentlogic.Dispatcher[u.GetPath().GetElem()[1].GetName()]; ok {
+			return intentlogic.String2ResourceKind(u.GetPath().GetElem()[1].GetName()),
 				getKeyString(u.GetPath().GetElem()[1].GetKey()),
 				&gnmi.Path{
-					Origin: ipam.GnmiOrigin,
-					Elem:   u.GetPath().GetElem()[:2], // we cut the path
+					Elem: u.GetPath().GetElem()[:2], // we cut the path
 				}
 		}
 	}
 	return "", "", nil
 }
+*/
 
-func getResources2Delete(p *gnmi.Path) (string, string, *gnmi.Path) {
+/*
+func getResources2Delete(p *gnmi.Path) (intentlogic.ResourceKind, string, *gnmi.Path) {
 	if len(p.GetElem()) == 1 {
 		// TODO delete all resources
 	}
+	if len(p.GetElem()) > 3 {
+		// we do a more specific check first sicne instance would match if we check on level 2 first
+		// ip-address, ip-prefix, ip-range
+		// the key is at place 3
+		if _, ok := intentlogic.Dispatcher[p.GetElem()[3].GetName()]; ok {
+			return intentlogic.String2ResourceKind(p.GetElem()[3].GetName()),
+				getKeyString(p.GetElem()[2].GetKey()),
+				&gnmi.Path{
+					Elem: p.GetElem()[:4], // we cut the path
+				}
+		}
+	}
+	if len(p.GetElem()) > 2 {
+		// we do a more specific check first sicne instance would match if we check on level 2 first
+		// ip-address, ip-prefix, ip-range
+		// the key is at place 3
+		if _, ok := intentlogic.Dispatcher[p.GetElem()[2].GetName()]; ok {
+			return intentlogic.String2ResourceKind(p.GetElem()[2].GetName()),
+				getKeyString(p.GetElem()[2].GetKey()),
+				&gnmi.Path{
+					Elem: p.GetElem()[:3], // we cut the path
+				}
+		}
+	}
 	if len(p.GetElem()) > 1 {
-		switch {
-		case p.GetElem()[1].GetName() == ResourceNameRir ||
-			p.GetElem()[1].GetName() == ResourceNameAggregate ||
-			p.GetElem()[1].GetName() == ResourceNameIpPrefix ||
-			p.GetElem()[1].GetName() == ResourceNameIpRange ||
-			p.GetElem()[1].GetName() == ResourceNameIpAddress:
-
-			// they key is at place 2 of the pathElem for all resources
-			// the key is at place 2 of the pathElem for all resources
-			return p.GetElem()[1].GetName(),
+		// rir and instance
+		// the key is at place 2 of the pathElem for all resources
+		// if there is a match in the dispatcher we can return a resource
+		if _, ok := intentlogic.Dispatcher[p.GetElem()[1].GetName()]; ok {
+			return intentlogic.String2ResourceKind(p.GetElem()[1].GetName()),
 				getKeyString(p.GetElem()[1].GetKey()),
 				&gnmi.Path{
-					Origin: ipam.GnmiOrigin,
-					Elem:   p.GetElem()[:2], // we cut the path
+					Elem: p.GetElem()[:2], // we cut the path
 				}
 		}
 	}
 	return "", "", nil
 }
+*/
 
 func getKeyString(key map[string]string) string {
 	sb := strings.Builder{}

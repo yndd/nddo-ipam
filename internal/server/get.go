@@ -39,13 +39,16 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 
 	log := s.log.WithValues("Path", req.GetPath())
 
-	if x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: []*gnmi.PathElem{}}); err != nil {
+	prefix := req.GetPrefix()
+
+	// this is a debugging capability to show the config cache
+	if x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}}); err != nil {
 		return nil, err
 	} else {
 		log.Debug("Get gnmi...", "Data", x)
 	}
 
-	updates, err := s.HandleGet(req.GetPath())
+	updates, err := s.HandleGet(req.GetPrefix(), req.GetPath())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %s", err))
 	}
@@ -61,11 +64,11 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 	}, nil
 }
 
-func (s *Server) HandleGet(reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
+func (s *Server) HandleGet(prefix *gnmi.Path, reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
 	//var err error
 	updates := make([]*gnmi.Update, 0)
 	if reqPaths == nil {
-		x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: []*gnmi.PathElem{}})
+		x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +77,7 @@ func (s *Server) HandleGet(reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
 		}
 	} else {
 		for _, path := range reqPaths {
-			xx, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, &gnmi.Path{Origin: ipam.GnmiOrigin, Elem: path.GetElem()})
+			xx, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, path)
 			if err != nil {
 				return nil, err
 			}
@@ -107,18 +110,51 @@ func (s *Server) HandleGet(reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
 // prepareResponseData prepare the response data aligned with the controller
 // 1. the hierarchical elements within the resource should be removed
 // 2. add the last element of the path back to the return data
-func prepareResponseData(x interface{}, path *gnmi.Path, hElem []string) (interface{}, error) {
+func prepareResponseData(x interface{}, path *gnmi.Path, hElem interface{}) (interface{}, error) {
 	// remove hierarchical elements
 	switch x1 := x.(type) {
 	case map[string]interface{}:
-		for _, elem := range hElem {
-			delete(x1, elem)
+		switch he := hElem.(type) {
+		case map[string]interface{}:
+			x = deleteHierarchicalElements(x1, he)
+		default:
 		}
+		//for _, elem := range hElem {
+		//	delete(x1, elem)
+		//}
 	}
 	// add last element of the path to the return data
 	xx := make(map[string]interface{})
 	xx[path.GetElem()[len(path.GetElem())-1].GetName()] = x
 	return xx, nil
+}
+
+func deleteHierarchicalElements(x map[string]interface{}, he map[string]interface{}) map[string]interface{} {
+	for element, heElements := range he {
+		switch he := heElements.(type) {
+		case nil:
+			// this is the end of the hierarchical list
+			delete(x, element)
+		case map[string]interface{}:
+			// there is still some elements in the hierarchical resource list
+			if xx, ok := x[element]; ok {
+				switch x1 := xx.(type) {
+				case map[string]interface{}:
+					deleteHierarchicalElements(x1, he)
+				case []interface{}:
+					for _, xxx := range x1 {
+						switch x2 := xxx.(type) {
+						case map[string]interface{}:
+							deleteHierarchicalElements(x2, he)
+						}
+					}
+				default:
+					// it can be that no data is present, so we ignore this
+				}
+			}
+		}
+	}
+	return x
 }
 
 func appendUpdateResponse(data interface{}, path *gnmi.Path, updates []*gnmi.Update) ([]*gnmi.Update, error) {

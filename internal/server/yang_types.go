@@ -36,207 +36,6 @@ var resourceRefPaths = []*gnmi.Path{
 		Elem: []*gnmi.PathElem{
 			{Name: "nddo-ipam"},
 			{Name: "ipam"},
-			{Name: "aggregate", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "aggregate", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-			{Name: "tag", Key: map[string]string{
-				"key": "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
-			}},
-			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
-			}},
-			{Name: "ip-range", Key: map[string]string{
-				"end":              "",
-				"network-instance": "",
-				"start":            "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-address", Key: map[string]string{
-				"address":          "",
-				"network-instance": "",
-				"tenant":           "",
-			}},
-			{Name: "tag", Key: map[string]string{
-				"key": "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-			{Name: "aggregate", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-			{Name: "tag", Key: map[string]string{
-				"key": "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-range", Key: map[string]string{
-				"end":              "",
-				"network-instance": "",
-				"start":            "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-range", Key: map[string]string{
-				"end":              "",
-				"network-instance": "",
-				"start":            "",
-				"tenant":           "",
-			}},
-			{Name: "aggregate", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-range", Key: map[string]string{
-				"end":              "",
-				"network-instance": "",
-				"start":            "",
-				"tenant":           "",
-			}},
-			{Name: "ip-prefix", Key: map[string]string{
-				"network-instance": "",
-				"prefix":           "",
-				"tenant":           "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
-			{Name: "ip-range", Key: map[string]string{
-				"end":              "",
-				"network-instance": "",
-				"start":            "",
-				"tenant":           "",
-			}},
-			{Name: "tag", Key: map[string]string{
-				"key": "",
-			}},
-		},
-	},
-	{
-		Elem: []*gnmi.PathElem{
-			{Name: "nddo-ipam"},
-			{Name: "ipam"},
 			{Name: "rir", Key: map[string]string{
 				"name": "",
 			}},
@@ -247,6 +46,299 @@ var resourceRefPaths = []*gnmi.Path{
 			{Name: "nddo-ipam"},
 			{Name: "ipam"},
 			{Name: "rir", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "tag", Key: map[string]string{
+				"key": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-address", Key: map[string]string{
+				"address": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-address", Key: map[string]string{
+				"address": "",
+			}},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-address", Key: map[string]string{
+				"address": "",
+			}},
+			{Name: "ip-range", Key: map[string]string{
+				"end":   "",
+				"start": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-address", Key: map[string]string{
+				"address": "",
+			}},
+			{Name: "tag", Key: map[string]string{
+				"key": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+			{Name: "child"},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+			{Name: "child"},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+			{Name: "parent"},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+			{Name: "parent"},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+			{Name: "tag", Key: map[string]string{
+				"key": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-range", Key: map[string]string{
+				"end":   "",
+				"start": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-range", Key: map[string]string{
+				"end":   "",
+				"start": "",
+			}},
+			{Name: "parent"},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-range", Key: map[string]string{
+				"end":   "",
+				"start": "",
+			}},
+			{Name: "parent"},
+			{Name: "ip-prefix", Key: map[string]string{
+				"prefix": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "ip-range", Key: map[string]string{
+				"end":   "",
+				"start": "",
+			}},
+			{Name: "tag", Key: map[string]string{
+				"key": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "network-instance", Key: map[string]string{
+				"name": "",
+			}},
+			{Name: "tag", Key: map[string]string{
+				"key": "",
+			}},
+		},
+	},
+	{
+		Elem: []*gnmi.PathElem{
+			{Name: "nddo-ipam"},
+			{Name: "ipam"},
+			{Name: "tenant", Key: map[string]string{
 				"name": "",
 			}},
 			{Name: "tag", Key: map[string]string{

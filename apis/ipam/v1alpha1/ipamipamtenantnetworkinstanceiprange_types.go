@@ -25,14 +25,17 @@ import (
 )
 
 const (
-	// IpamIprangeFinalizer is the name of the finalizer added to
-	// IpamIprange to block delete operations until the physical node can be
+	// IpamTenantNetworkinstanceIprangeFinalizer is the name of the finalizer added to
+	// IpamTenantNetworkinstanceIprange to block delete operations until the physical node can be
 	// deprovisioned.
-	IpamIprangeFinalizer string = "ipRange.ipam.nddo.yndd.io"
+	IpamTenantNetworkinstanceIprangeFinalizer string = "ipRange.ipam.nddo.yndd.io"
 )
 
-// IpamIprange struct
-type IpamIprange struct {
+// IpamTenantNetworkinstanceIprange struct
+type IpamTenantNetworkinstanceIprange struct {
+	// +kubebuilder:validation:Enum=`first-address`;`last-address`
+	// +kubebuilder:default:="first-address"
+	AddressAllocationStrategy *string `json:"address-allocation-strategy,omitempty"`
 	// +kubebuilder:validation:Enum=`disable`;`enable`
 	// +kubebuilder:default:="enable"
 	AdminState *string `json:"admin-state,omitempty"`
@@ -44,42 +47,14 @@ type IpamIprange struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Pattern=`(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))`
 	End *string `json:"end"`
-	// kubebuilder:validation:MinLength=1
-	// kubebuilder:validation:MaxLength=255
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
-	// +kubebuilder:default:="default"
-	NetworkInstance *string                 `json:"network-instance,omitempty"`
-	Aggregate       []*IpamIprangeAggregate `json:"aggregate,omitempty"`
-	IpPrefix        []*IpamIprangeIpPrefix  `json:"ip-prefix,omitempty"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Pattern=`(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))`
-	Start *string           `json:"start"`
-	Tag   []*IpamIprangeTag `json:"tag,omitempty"`
-	// kubebuilder:validation:MinLength=1
-	// kubebuilder:validation:MaxLength=255
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Pattern="[A-Za-z0-9 !@#$^&()|+=`~.,'/_:;?-]*"
-	// +kubebuilder:default:="default"
-	Tenant *string `json:"tenant,omitempty"`
+	Start *string                                `json:"start"`
+	Tag   []*IpamTenantNetworkinstanceIprangeTag `json:"tag,omitempty"`
 }
 
-// IpamIprangeAggregate struct
-type IpamIprangeAggregate struct {
-	NetworkInstance *string `json:"network-instance"`
-	Prefix          *string `json:"prefix"`
-	Tenant          *string `json:"tenant"`
-}
-
-// IpamIprangeIpPrefix struct
-type IpamIprangeIpPrefix struct {
-	NetworkInstance *string `json:"network-instance"`
-	Prefix          *string `json:"prefix"`
-	Tenant          *string `json:"tenant"`
-}
-
-// IpamIprangeTag struct
-type IpamIprangeTag struct {
+// IpamTenantNetworkinstanceIprangeTag struct
+type IpamTenantNetworkinstanceIprangeTag struct {
 	// kubebuilder:validation:MinLength=1
 	// kubebuilder:validation:MaxLength=255
 	// +kubebuilder:validation:Required
@@ -92,30 +67,32 @@ type IpamIprangeTag struct {
 	Value *string `json:"value,omitempty"`
 }
 
-// IpamIprangeParameters are the parameter fields of a IpamIprange.
-type IpamIprangeParameters struct {
-	IpamIpamIprange *IpamIprange `json:"ip-range,omitempty"`
+// IpamTenantNetworkinstanceIprangeParameters are the parameter fields of a IpamTenantNetworkinstanceIprange.
+type IpamTenantNetworkinstanceIprangeParameters struct {
+	TenantName                           *string                           `json:"tenant-name"`
+	NetworkInstanceName                  *string                           `json:"network-instance-name"`
+	IpamIpamTenantNetworkinstanceIprange *IpamTenantNetworkinstanceIprange `json:"ip-range,omitempty"`
 }
 
-// IpamIprangeObservation are the observable fields of a IpamIprange.
-type IpamIprangeObservation struct {
+// IpamTenantNetworkinstanceIprangeObservation are the observable fields of a IpamTenantNetworkinstanceIprange.
+type IpamTenantNetworkinstanceIprangeObservation struct {
 }
 
-// A IpamIprangeSpec defines the desired state of a IpamIprange.
-type IpamIprangeSpec struct {
+// A IpamTenantNetworkinstanceIprangeSpec defines the desired state of a IpamTenantNetworkinstanceIprange.
+type IpamTenantNetworkinstanceIprangeSpec struct {
 	nddv1.ResourceSpec `json:",inline"`
-	ForNetworkNode     IpamIprangeParameters `json:"forNetworkNode"`
+	ForNetworkNode     IpamTenantNetworkinstanceIprangeParameters `json:"forNetworkNode"`
 }
 
-// A IpamIprangeStatus represents the observed state of a IpamIprange.
-type IpamIprangeStatus struct {
+// A IpamTenantNetworkinstanceIprangeStatus represents the observed state of a IpamTenantNetworkinstanceIprange.
+type IpamTenantNetworkinstanceIprangeStatus struct {
 	nddv1.ResourceStatus `json:",inline"`
-	AtNetworkNode        IpamIprangeObservation `json:"atNetworkNode,omitempty"`
+	AtNetworkNode        IpamTenantNetworkinstanceIprangeObservation `json:"atNetworkNode,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// IpamIpamIprange is the Schema for the IpamIprange API
+// IpamIpamTenantNetworkinstanceIprange is the Schema for the IpamTenantNetworkinstanceIprange API
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="TARGET",type="string",JSONPath=".status.conditions[?(@.kind=='TargetFound')].status"
 // +kubebuilder:printcolumn:name="STATUS",type="string",JSONPath=".status.conditions[?(@.kind=='Ready')].status"
@@ -125,31 +102,31 @@ type IpamIprangeStatus struct {
 // +kubebuilder:printcolumn:name="PARENTDEP",type="string",JSONPath=".status.conditions[?(@.kind=='ParentValidationSuccess')].status"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:resource:scope=Cluster,categories={ndd,ipam}
-type IpamIpamIprange struct {
+type IpamIpamTenantNetworkinstanceIprange struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IpamIprangeSpec   `json:"spec,omitempty"`
-	Status IpamIprangeStatus `json:"status,omitempty"`
+	Spec   IpamTenantNetworkinstanceIprangeSpec   `json:"spec,omitempty"`
+	Status IpamTenantNetworkinstanceIprangeStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// IpamIpamIprangeList contains a list of IpamIpranges
-type IpamIpamIprangeList struct {
+// IpamIpamTenantNetworkinstanceIprangeList contains a list of IpamTenantNetworkinstanceIpranges
+type IpamIpamTenantNetworkinstanceIprangeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IpamIpamIprange `json:"items"`
+	Items           []IpamIpamTenantNetworkinstanceIprange `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&IpamIpamIprange{}, &IpamIpamIprangeList{})
+	SchemeBuilder.Register(&IpamIpamTenantNetworkinstanceIprange{}, &IpamIpamTenantNetworkinstanceIprangeList{})
 }
 
-// IpamIprange type metadata.
+// IpamTenantNetworkinstanceIprange type metadata.
 var (
-	IpamIprangeKindKind         = reflect.TypeOf(IpamIpamIprange{}).Name()
-	IpamIprangeGroupKind        = schema.GroupKind{Group: Group, Kind: IpamIprangeKindKind}.String()
-	IpamIprangeKindAPIVersion   = IpamIprangeKindKind + "." + GroupVersion.String()
-	IpamIprangeGroupVersionKind = GroupVersion.WithKind(IpamIprangeKindKind)
+	IpamTenantNetworkinstanceIprangeKindKind         = reflect.TypeOf(IpamIpamTenantNetworkinstanceIprange{}).Name()
+	IpamTenantNetworkinstanceIprangeGroupKind        = schema.GroupKind{Group: Group, Kind: IpamTenantNetworkinstanceIprangeKindKind}.String()
+	IpamTenantNetworkinstanceIprangeKindAPIVersion   = IpamTenantNetworkinstanceIprangeKindKind + "." + GroupVersion.String()
+	IpamTenantNetworkinstanceIprangeGroupVersionKind = GroupVersion.WithKind(IpamTenantNetworkinstanceIprangeKindKind)
 )

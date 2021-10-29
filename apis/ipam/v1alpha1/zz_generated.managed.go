@@ -92,212 +92,352 @@ func (mg *IpamIpam) SetTarget(t []string) {
 	mg.Status.Target = t
 }
 
-// GetActive of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) GetActive() bool {
+// GetActive of this IpamIpamTenant.
+func (mg *IpamIpamTenant) GetActive() bool {
 	return mg.Spec.Active
 }
 
-// GetCondition of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
+// GetCondition of this IpamIpamTenant.
+func (mg *IpamIpamTenant) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
 	return mg.Status.GetCondition(ck)
 }
 
-// GetDeletionPolicy of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) GetDeletionPolicy() nddv1.DeletionPolicy {
+// GetDeletionPolicy of this IpamIpamTenant.
+func (mg *IpamIpamTenant) GetDeletionPolicy() nddv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
-// GetExternalLeafRefs of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) GetExternalLeafRefs() []string {
+// GetExternalLeafRefs of this IpamIpamTenant.
+func (mg *IpamIpamTenant) GetExternalLeafRefs() []string {
 	return mg.Status.ExternalLeafRefs
 }
 
-// GetNetworkNodeReference of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) GetNetworkNodeReference() *nddv1.Reference {
+// GetNetworkNodeReference of this IpamIpamTenant.
+func (mg *IpamIpamTenant) GetNetworkNodeReference() *nddv1.Reference {
 	return mg.Spec.NetworkNodeReference
 }
 
-// GetResourceIndexes of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) GetResourceIndexes() map[string]string {
+// GetResourceIndexes of this IpamIpamTenant.
+func (mg *IpamIpamTenant) GetResourceIndexes() map[string]string {
 	return mg.Status.ResourceIndexes
 }
 
-// GetTarget of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) GetTarget() []string {
+// GetTarget of this IpamIpamTenant.
+func (mg *IpamIpamTenant) GetTarget() []string {
 	return mg.Status.Target
 }
 
-// SetActive of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) SetActive(b bool) {
+// SetActive of this IpamIpamTenant.
+func (mg *IpamIpamTenant) SetActive(b bool) {
 	mg.Spec.Active = b
 }
 
-// SetConditions of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) SetConditions(c ...nddv1.Condition) {
+// SetConditions of this IpamIpamTenant.
+func (mg *IpamIpamTenant) SetConditions(c ...nddv1.Condition) {
 	mg.Status.SetConditions(c...)
 }
 
-// SetDeletionPolicy of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) SetDeletionPolicy(r nddv1.DeletionPolicy) {
+// SetDeletionPolicy of this IpamIpamTenant.
+func (mg *IpamIpamTenant) SetDeletionPolicy(r nddv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
-// SetExternalLeafRefs of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) SetExternalLeafRefs(n []string) {
+// SetExternalLeafRefs of this IpamIpamTenant.
+func (mg *IpamIpamTenant) SetExternalLeafRefs(n []string) {
 	mg.Status.ExternalLeafRefs = n
 }
 
-// SetNetworkNodeReference of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) SetNetworkNodeReference(r *nddv1.Reference) {
+// SetNetworkNodeReference of this IpamIpamTenant.
+func (mg *IpamIpamTenant) SetNetworkNodeReference(r *nddv1.Reference) {
 	mg.Spec.NetworkNodeReference = r
 }
 
-// SetResourceIndexes of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) SetResourceIndexes(n map[string]string) {
+// SetResourceIndexes of this IpamIpamTenant.
+func (mg *IpamIpamTenant) SetResourceIndexes(n map[string]string) {
 	mg.Status.ResourceIndexes = n
 }
 
-// SetTarget of this IpamIpamIpaddress.
-func (mg *IpamIpamIpaddress) SetTarget(t []string) {
+// SetTarget of this IpamIpamTenant.
+func (mg *IpamIpamTenant) SetTarget(t []string) {
 	mg.Status.Target = t
 }
 
-// GetActive of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) GetActive() bool {
+// GetActive of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) GetActive() bool {
 	return mg.Spec.Active
 }
 
-// GetCondition of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
+// GetCondition of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
 	return mg.Status.GetCondition(ck)
 }
 
-// GetDeletionPolicy of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) GetDeletionPolicy() nddv1.DeletionPolicy {
+// GetDeletionPolicy of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) GetDeletionPolicy() nddv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
-// GetExternalLeafRefs of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) GetExternalLeafRefs() []string {
+// GetExternalLeafRefs of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) GetExternalLeafRefs() []string {
 	return mg.Status.ExternalLeafRefs
 }
 
-// GetNetworkNodeReference of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) GetNetworkNodeReference() *nddv1.Reference {
+// GetNetworkNodeReference of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) GetNetworkNodeReference() *nddv1.Reference {
 	return mg.Spec.NetworkNodeReference
 }
 
-// GetResourceIndexes of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) GetResourceIndexes() map[string]string {
+// GetResourceIndexes of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) GetResourceIndexes() map[string]string {
 	return mg.Status.ResourceIndexes
 }
 
-// GetTarget of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) GetTarget() []string {
+// GetTarget of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) GetTarget() []string {
 	return mg.Status.Target
 }
 
-// SetActive of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) SetActive(b bool) {
+// SetActive of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) SetActive(b bool) {
 	mg.Spec.Active = b
 }
 
-// SetConditions of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) SetConditions(c ...nddv1.Condition) {
+// SetConditions of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) SetConditions(c ...nddv1.Condition) {
 	mg.Status.SetConditions(c...)
 }
 
-// SetDeletionPolicy of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) SetDeletionPolicy(r nddv1.DeletionPolicy) {
+// SetDeletionPolicy of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) SetDeletionPolicy(r nddv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
-// SetExternalLeafRefs of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) SetExternalLeafRefs(n []string) {
+// SetExternalLeafRefs of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) SetExternalLeafRefs(n []string) {
 	mg.Status.ExternalLeafRefs = n
 }
 
-// SetNetworkNodeReference of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) SetNetworkNodeReference(r *nddv1.Reference) {
+// SetNetworkNodeReference of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) SetNetworkNodeReference(r *nddv1.Reference) {
 	mg.Spec.NetworkNodeReference = r
 }
 
-// SetResourceIndexes of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) SetResourceIndexes(n map[string]string) {
+// SetResourceIndexes of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) SetResourceIndexes(n map[string]string) {
 	mg.Status.ResourceIndexes = n
 }
 
-// SetTarget of this IpamIpamIpprefix.
-func (mg *IpamIpamIpprefix) SetTarget(t []string) {
+// SetTarget of this IpamIpamTenantNetworkinstance.
+func (mg *IpamIpamTenantNetworkinstance) SetTarget(t []string) {
 	mg.Status.Target = t
 }
 
-// GetActive of this IpamIpamIprange.
-func (mg *IpamIpamIprange) GetActive() bool {
+// GetActive of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) GetActive() bool {
 	return mg.Spec.Active
 }
 
-// GetCondition of this IpamIpamIprange.
-func (mg *IpamIpamIprange) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
+// GetCondition of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
 	return mg.Status.GetCondition(ck)
 }
 
-// GetDeletionPolicy of this IpamIpamIprange.
-func (mg *IpamIpamIprange) GetDeletionPolicy() nddv1.DeletionPolicy {
+// GetDeletionPolicy of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) GetDeletionPolicy() nddv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
-// GetExternalLeafRefs of this IpamIpamIprange.
-func (mg *IpamIpamIprange) GetExternalLeafRefs() []string {
+// GetExternalLeafRefs of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) GetExternalLeafRefs() []string {
 	return mg.Status.ExternalLeafRefs
 }
 
-// GetNetworkNodeReference of this IpamIpamIprange.
-func (mg *IpamIpamIprange) GetNetworkNodeReference() *nddv1.Reference {
+// GetNetworkNodeReference of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) GetNetworkNodeReference() *nddv1.Reference {
 	return mg.Spec.NetworkNodeReference
 }
 
-// GetResourceIndexes of this IpamIpamIprange.
-func (mg *IpamIpamIprange) GetResourceIndexes() map[string]string {
+// GetResourceIndexes of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) GetResourceIndexes() map[string]string {
 	return mg.Status.ResourceIndexes
 }
 
-// GetTarget of this IpamIpamIprange.
-func (mg *IpamIpamIprange) GetTarget() []string {
+// GetTarget of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) GetTarget() []string {
 	return mg.Status.Target
 }
 
-// SetActive of this IpamIpamIprange.
-func (mg *IpamIpamIprange) SetActive(b bool) {
+// SetActive of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) SetActive(b bool) {
 	mg.Spec.Active = b
 }
 
-// SetConditions of this IpamIpamIprange.
-func (mg *IpamIpamIprange) SetConditions(c ...nddv1.Condition) {
+// SetConditions of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) SetConditions(c ...nddv1.Condition) {
 	mg.Status.SetConditions(c...)
 }
 
-// SetDeletionPolicy of this IpamIpamIprange.
-func (mg *IpamIpamIprange) SetDeletionPolicy(r nddv1.DeletionPolicy) {
+// SetDeletionPolicy of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) SetDeletionPolicy(r nddv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
-// SetExternalLeafRefs of this IpamIpamIprange.
-func (mg *IpamIpamIprange) SetExternalLeafRefs(n []string) {
+// SetExternalLeafRefs of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) SetExternalLeafRefs(n []string) {
 	mg.Status.ExternalLeafRefs = n
 }
 
-// SetNetworkNodeReference of this IpamIpamIprange.
-func (mg *IpamIpamIprange) SetNetworkNodeReference(r *nddv1.Reference) {
+// SetNetworkNodeReference of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) SetNetworkNodeReference(r *nddv1.Reference) {
 	mg.Spec.NetworkNodeReference = r
 }
 
-// SetResourceIndexes of this IpamIpamIprange.
-func (mg *IpamIpamIprange) SetResourceIndexes(n map[string]string) {
+// SetResourceIndexes of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) SetResourceIndexes(n map[string]string) {
 	mg.Status.ResourceIndexes = n
 }
 
-// SetTarget of this IpamIpamIprange.
-func (mg *IpamIpamIprange) SetTarget(t []string) {
+// SetTarget of this IpamIpamTenantNetworkinstanceIpaddress.
+func (mg *IpamIpamTenantNetworkinstanceIpaddress) SetTarget(t []string) {
+	mg.Status.Target = t
+}
+
+// GetActive of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) GetActive() bool {
+	return mg.Spec.Active
+}
+
+// GetCondition of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
+	return mg.Status.GetCondition(ck)
+}
+
+// GetDeletionPolicy of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) GetDeletionPolicy() nddv1.DeletionPolicy {
+	return mg.Spec.DeletionPolicy
+}
+
+// GetExternalLeafRefs of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) GetExternalLeafRefs() []string {
+	return mg.Status.ExternalLeafRefs
+}
+
+// GetNetworkNodeReference of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) GetNetworkNodeReference() *nddv1.Reference {
+	return mg.Spec.NetworkNodeReference
+}
+
+// GetResourceIndexes of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) GetResourceIndexes() map[string]string {
+	return mg.Status.ResourceIndexes
+}
+
+// GetTarget of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) GetTarget() []string {
+	return mg.Status.Target
+}
+
+// SetActive of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) SetActive(b bool) {
+	mg.Spec.Active = b
+}
+
+// SetConditions of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) SetConditions(c ...nddv1.Condition) {
+	mg.Status.SetConditions(c...)
+}
+
+// SetDeletionPolicy of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) SetDeletionPolicy(r nddv1.DeletionPolicy) {
+	mg.Spec.DeletionPolicy = r
+}
+
+// SetExternalLeafRefs of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) SetExternalLeafRefs(n []string) {
+	mg.Status.ExternalLeafRefs = n
+}
+
+// SetNetworkNodeReference of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) SetNetworkNodeReference(r *nddv1.Reference) {
+	mg.Spec.NetworkNodeReference = r
+}
+
+// SetResourceIndexes of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) SetResourceIndexes(n map[string]string) {
+	mg.Status.ResourceIndexes = n
+}
+
+// SetTarget of this IpamIpamTenantNetworkinstanceIpprefix.
+func (mg *IpamIpamTenantNetworkinstanceIpprefix) SetTarget(t []string) {
+	mg.Status.Target = t
+}
+
+// GetActive of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) GetActive() bool {
+	return mg.Spec.Active
+}
+
+// GetCondition of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) GetCondition(ck nddv1.ConditionKind) nddv1.Condition {
+	return mg.Status.GetCondition(ck)
+}
+
+// GetDeletionPolicy of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) GetDeletionPolicy() nddv1.DeletionPolicy {
+	return mg.Spec.DeletionPolicy
+}
+
+// GetExternalLeafRefs of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) GetExternalLeafRefs() []string {
+	return mg.Status.ExternalLeafRefs
+}
+
+// GetNetworkNodeReference of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) GetNetworkNodeReference() *nddv1.Reference {
+	return mg.Spec.NetworkNodeReference
+}
+
+// GetResourceIndexes of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) GetResourceIndexes() map[string]string {
+	return mg.Status.ResourceIndexes
+}
+
+// GetTarget of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) GetTarget() []string {
+	return mg.Status.Target
+}
+
+// SetActive of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) SetActive(b bool) {
+	mg.Spec.Active = b
+}
+
+// SetConditions of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) SetConditions(c ...nddv1.Condition) {
+	mg.Status.SetConditions(c...)
+}
+
+// SetDeletionPolicy of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) SetDeletionPolicy(r nddv1.DeletionPolicy) {
+	mg.Spec.DeletionPolicy = r
+}
+
+// SetExternalLeafRefs of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) SetExternalLeafRefs(n []string) {
+	mg.Status.ExternalLeafRefs = n
+}
+
+// SetNetworkNodeReference of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) SetNetworkNodeReference(r *nddv1.Reference) {
+	mg.Spec.NetworkNodeReference = r
+}
+
+// SetResourceIndexes of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) SetResourceIndexes(n map[string]string) {
+	mg.Status.ResourceIndexes = n
+}
+
+// SetTarget of this IpamIpamTenantNetworkinstanceIprange.
+func (mg *IpamIpamTenantNetworkinstanceIprange) SetTarget(t []string) {
 	mg.Status.Target = t
 }
