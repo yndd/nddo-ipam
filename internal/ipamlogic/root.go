@@ -10,41 +10,32 @@ import (
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
-type Root interface {
-	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
-}
-
 type root struct {
-	log         logging.Logger
-	configCache *cache.Cache
-	stateCache  *cache.Cache
-	ipams       map[string]dispatcher.Handler
+	dispatcher.Resource
+	ipams map[string]dispatcher.Handler
 }
 
-type RootOption func(*root)
-
-// WithRootLogger initializes the logger.
-func WithRootLogger(log logging.Logger) RootOption {
-	return func(o *root) {
-		o.log = log
-	}
+func (r *root) WithLogging(log logging.Logger) {
+	r.Log = log
 }
 
-// WithRootStateCache initializes the state cache.
-func WithRootStateCache(c *cache.Cache) RootOption {
-	return func(o *root) {
-		o.stateCache = c
-	}
+func (r *root) WithStateCache(c *cache.Cache) {
+	r.StateCache = c
 }
 
-// WithRootConfigCache initializes the config cache.
-func WithRootConfigCache(c *cache.Cache) RootOption {
-	return func(o *root) {
-		o.configCache = c
-	}
+func (r *root) WithConfigCache(c *cache.Cache) {
+	r.ConfigCache = c
 }
 
-func NewRoot(opts ...RootOption) (Root, error) {
+func (r *root) WithPrefix(p *gnmi.Path) {
+	r.Prefix = p
+}
+
+func (r *root) WithPathElem(pe []*gnmi.PathElem) {
+	r.PathElem = pe[0]
+}
+
+func NewRoot(opts ...dispatcher.HandlerOption) dispatcher.Handler {
 	r := &root{
 		ipams: make(map[string]dispatcher.Handler),
 	}
@@ -53,11 +44,11 @@ func NewRoot(opts ...RootOption) (Root, error) {
 		opt(r)
 	}
 
-	return r, nil
+	return r
 }
 
 func (r *root) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	log := r.log.WithValues("Operation", o, "Path Elem", pe)
+	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
 	log.Debug("root Handle")
 
@@ -110,7 +101,7 @@ func (r *root) CreateChild(children map[string]dispatcher.HandleConfigEventFunc,
 	switch pathElemName {
 	case "ipam":
 		if i, ok := r.ipams[ipamGetKey(pe)]; !ok {
-			i = children[pathElemName](r.log, r.configCache, r.stateCache, prefix, pe, d)
+			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -132,5 +123,33 @@ func (r *root) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
 			}
 		}
 	}
+	return nil
+}
+
+func (r *root) SetParent(parent interface{}) error {
+	// no SetParent required for root
+	return nil
+}
+
+func (r *root) GetChildren() map[string]string {
+	x := make(map[string]string)
+	for k := range r.ipams {
+		x[k] = "ipam"
+	}
+	return x
+}
+
+func (r *root) UpdateConfig(d interface{}) error {
+	// no updates required for root
+	return nil
+}
+
+func (r *root) UpdateStateCache() error {
+	// no UpdateStateCache required for root
+	return nil
+}
+
+func (r *root) DeleteStateCache() error {
+	// no DeleteStateCache required for root
 	return nil
 }

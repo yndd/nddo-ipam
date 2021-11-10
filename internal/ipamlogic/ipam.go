@@ -28,62 +28,40 @@ func init() {
 	})
 }
 
-type Ipam interface {
-	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
-}
-
 type ipam struct {
-	log         logging.Logger
-	configCache *cache.Cache
-	stateCache  *cache.Cache
-	pathElem    *gnmi.PathElem
-	prefix      *gnmi.Path
-	key         string
-	data        *ipamv1alpha1.NddoipamIpam
-	parent      Root
-	rirs        map[string]dispatcher.Handler
-	tenants     map[string]dispatcher.Handler
+	dispatcher.Resource
+	data    *ipamv1alpha1.NddoipamIpam
+	parent  *root
+	rirs    map[string]dispatcher.Handler
+	tenants map[string]dispatcher.Handler
 }
 
-type IpamOption func(*ipam)
-
-// WithIpamIpamLogger initializes the logger.
-func WithIpamLogger(log logging.Logger) IpamOption {
-	return func(o *ipam) {
-		o.log = log
-	}
+func (r *ipam) WithLogging(log logging.Logger) {
+	r.Log = log
 }
 
-func WithIpamStateCache(c *cache.Cache) IpamOption {
-	return func(o *ipam) {
-		o.stateCache = c
-	}
+func (r *ipam) WithStateCache(c *cache.Cache) {
+	r.StateCache = c
 }
 
-func WithIpamConfigCache(c *cache.Cache) IpamOption {
-	return func(o *ipam) {
-		o.configCache = c
-	}
+func (r *ipam) WithConfigCache(c *cache.Cache) {
+	r.ConfigCache = c
 }
 
-func WithIpamPrefix(p *gnmi.Path) IpamOption {
-	return func(o *ipam) {
-		o.prefix = p
-	}
+func (r *ipam) WithPrefix(p *gnmi.Path) {
+	r.Prefix = p
 }
 
-func WithIpamPathElem(pe []*gnmi.PathElem) IpamOption {
-	return func(o *ipam) {
-		o.pathElem = pe[0]
-	}
+func (r *ipam) WithPathElem(pe []*gnmi.PathElem) {
+	r.PathElem = pe[0]
 }
 
-func NewIpam(n string, opts ...IpamOption) dispatcher.Handler {
+func NewIpam(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
 	x := &ipam{
-		key:     n,
 		rirs:    make(map[string]dispatcher.Handler),
 		tenants: make(map[string]dispatcher.Handler),
 	}
+	x.Key = n
 
 	for _, opt := range opts {
 		opt(x)
@@ -98,15 +76,15 @@ func ipamGetKey(p []*gnmi.PathElem) string {
 func ipamCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, p []*gnmi.PathElem, d interface{}) dispatcher.Handler {
 	ipamName := ipamGetKey(p)
 	return NewIpam(ipamName,
-		WithIpamPrefix(prefix),
-		WithIpamPathElem(p),
-		WithIpamLogger(log),
-		WithIpamStateCache(sc),
-		WithIpamConfigCache(cc))
+		dispatcher.WithPrefix(prefix),
+		dispatcher.WithPathElem(p),
+		dispatcher.WithLogging(log),
+		dispatcher.WithStateCache(sc),
+		dispatcher.WithConfigCache(cc))
 }
 
 func (r *ipam) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	log := r.log.WithValues("Operation", o, "Path Elem", pe)
+	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
 	log.Debug("ipam Handle")
 
@@ -160,7 +138,7 @@ func (r *ipam) CreateChild(children map[string]dispatcher.HandleConfigEventFunc,
 	switch pathElemName {
 	case "rir":
 		if i, ok := r.rirs[rirGetKey(pe)]; !ok {
-			i = children[pathElemName](r.log, r.configCache, r.stateCache, prefix, pe, d)
+			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -171,7 +149,7 @@ func (r *ipam) CreateChild(children map[string]dispatcher.HandleConfigEventFunc,
 		}
 	case "tenant":
 		if i, ok := r.tenants[tenantGetKey(pe)]; !ok {
-			i = children[pathElemName](r.log, r.configCache, r.stateCache, prefix, pe, d)
+			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -228,8 +206,8 @@ func (r *ipam) UpdateConfig(d interface{}) error {
 }
 
 func (r *ipam) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
-	r.log.Debug("GetPathElem", "PathElem ipam", r.pathElem)
-	return []*gnmi.PathElem{r.pathElem}, nil
+	r.Log.Debug("GetPathElem", "PathElem ipam", r.PathElem)
+	return []*gnmi.PathElem{r.PathElem}, nil
 }
 
 func (r *ipam) UpdateStateCache() error {
@@ -237,12 +215,12 @@ func (r *ipam) UpdateStateCache() error {
 	if err != nil {
 		return err
 	}
-	r.log.Debug("Rir Update Cache", "PathElem", pe, "Prefix", r.prefix, "data", r.data)
-	if err := updateCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.log.Debug("Rir Update Error")
+	r.Log.Debug("Rir Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
+		r.Log.Debug("Rir Update Error")
 		return err
 	}
-	r.log.Debug("Rir Update ok")
+	r.Log.Debug("Rir Update ok")
 	return nil
 }
 
@@ -251,7 +229,7 @@ func (r *ipam) DeleteStateCache() error {
 	if err != nil {
 		return err
 	}
-	if err := deleteCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}); err != nil {
+	if err := deleteCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}); err != nil {
 		return err
 	}
 	return nil

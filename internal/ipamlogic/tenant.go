@@ -27,22 +27,44 @@ func init() {
 	})
 }
 
-type Tenant interface {
-	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
-}
+//type Tenant interface {
+//	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
+//}
 
 type tenant struct {
-	log              logging.Logger
-	configCache      *cache.Cache
-	stateCache       *cache.Cache
-	pathElem         *gnmi.PathElem
-	prefix           *gnmi.Path
-	name             string
-	parent           *ipam
+	dispatcher.Resource
+	//log         logging.Logger
+	//configCache *cache.Cache
+	//stateCache  *cache.Cache
+	//pathElem    *gnmi.PathElem
+	//prefix      *gnmi.Path
+	//key         string
 	data             *ipamv1alpha1.NddoipamIpamTenant
+	parent           *ipam
 	networkInstances map[string]dispatcher.Handler
 }
 
+func (r *tenant) WithLogging(log logging.Logger) {
+	r.Log = log
+}
+
+func (r *tenant) WithStateCache(c *cache.Cache) {
+	r.StateCache = c
+}
+
+func (r *tenant) WithConfigCache(c *cache.Cache) {
+	r.ConfigCache = c
+}
+
+func (r *tenant) WithPrefix(p *gnmi.Path) {
+	r.Prefix = p
+}
+
+func (r *tenant) WithPathElem(pe []*gnmi.PathElem) {
+	r.PathElem = pe[0]
+}
+
+/*
 type TenantOption func(*tenant)
 
 // WithRirRirLogger initializes the logger.
@@ -76,12 +98,13 @@ func WithTenantPathElem(pe []*gnmi.PathElem) TenantOption {
 		o.pathElem = pe[0]
 	}
 }
+*/
 
-func NewTenant(n string, opts ...TenantOption) *tenant {
+func NewTenant(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
 	x := &tenant{
-		name:             n,
 		networkInstances: make(map[string]dispatcher.Handler),
 	}
+	x.Key = n
 
 	for _, opt := range opts {
 		opt(x)
@@ -96,15 +119,15 @@ func tenantGetKey(pe []*gnmi.PathElem) string {
 func tenantCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
 	tenantName := tenantGetKey(pe)
 	return NewTenant(tenantName,
-		WithTenantPrefix(prefix),
-		WithTenantPathElem(pe),
-		WithTenantLogger(log),
-		WithTenantStateCache(sc),
-		WithTenantConfigCache(cc))
+		dispatcher.WithPrefix(prefix),
+		dispatcher.WithPathElem(pe),
+		dispatcher.WithLogging(log),
+		dispatcher.WithStateCache(sc),
+		dispatcher.WithConfigCache(cc))
 }
 
 func (r *tenant) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	log := r.log.WithValues("Operation", o, "Path Elem", pe)
+	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
 	log.Debug("tenant HandleConfigEvent")
 
@@ -161,7 +184,7 @@ func (r *tenant) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe
 }
 
 func (r *tenant) UpdateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	i := children[pathElemName](r.log, r.configCache, r.stateCache, prefix, pe, d)
+	i := children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 	if err := i.SetParent(r); err != nil {
 		return nil, err
 	}
@@ -223,13 +246,13 @@ func (r *tenant) UpdateConfig(d interface{}) error {
 }
 
 func (r *tenant) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
-	r.log.Debug("GetPathElem", "PathElem tenant", r.pathElem)
+	r.Log.Debug("GetPathElem", "PathElem tenant", r.PathElem)
 	if r.parent != nil {
 		p, err := r.parent.GetPathElem(p, true)
 		if err != nil {
 			return nil, err
 		}
-		p = append(p, r.pathElem)
+		p = append(p, r.PathElem)
 		return p, nil
 	}
 	return nil, nil
@@ -240,12 +263,12 @@ func (r *tenant) UpdateStateCache() error {
 	if err != nil {
 		return err
 	}
-	r.log.Debug("Tenant Update State Cache", "PathElem", pe, "Prefix", r.prefix, "data", r.data)
-	if err := updateCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.log.Debug("Tenant Update State Cache Error")
+	r.Log.Debug("Tenant Update State Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
+		r.Log.Debug("Tenant Update State Cache Error")
 		return err
 	}
-	r.log.Debug("Tenant Update State Cache ok")
+	r.Log.Debug("Tenant Update State Cache ok")
 	return nil
 }
 
@@ -254,7 +277,7 @@ func (r *tenant) DeleteStateCache() error {
 	if err != nil {
 		return err
 	}
-	if err := deleteCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}); err != nil {
+	if err := deleteCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}); err != nil {
 		return err
 	}
 	return nil

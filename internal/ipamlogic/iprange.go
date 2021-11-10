@@ -26,59 +26,35 @@ func init() {
 	})
 }
 
-type IpRange interface {
-	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
-}
-
 type iprange struct {
-	log         logging.Logger
-	configCache *cache.Cache
-	stateCache  *cache.Cache
-	pathElem    *gnmi.PathElem
-	prefix      *gnmi.Path
-	key         string
-	parent      *networkinstance
-	data        *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpRange
+	dispatcher.Resource
+	data   *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpRange
+	parent *networkinstance
 }
 
-type IpRangeOption func(*iprange)
-
-// WithRirRirLogger initializes the logger.
-func WithIpRangeLogger(log logging.Logger) IpRangeOption {
-	return func(o *iprange) {
-		o.log = log
-	}
+func (r *iprange) WithLogging(log logging.Logger) {
+	r.Log = log
 }
 
-// WithRirRirCache initializes the cache.
-func WithIpRangeStateCache(c *cache.Cache) IpRangeOption {
-	return func(o *iprange) {
-		o.stateCache = c
-	}
+func (r *iprange) WithStateCache(c *cache.Cache) {
+	r.StateCache = c
 }
 
-func WithIpRangeConfigCache(c *cache.Cache) IpRangeOption {
-	return func(o *iprange) {
-		o.configCache = c
-	}
+func (r *iprange) WithConfigCache(c *cache.Cache) {
+	r.ConfigCache = c
 }
 
-func WithIpRangePrefix(p *gnmi.Path) IpRangeOption {
-	return func(o *iprange) {
-		o.prefix = p
-	}
+func (r *iprange) WithPrefix(p *gnmi.Path) {
+	r.Prefix = p
 }
 
-func WithIpRangePathElem(pe []*gnmi.PathElem) IpRangeOption {
-	return func(o *iprange) {
-		o.pathElem = pe[0]
-	}
+func (r *iprange) WithPathElem(pe []*gnmi.PathElem) {
+	r.PathElem = pe[0]
 }
 
-func NewIpRange(n string, opts ...IpRangeOption) *iprange {
-	x := &iprange{
-		key: n,
-	}
+func NewIpRange(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+	x := &iprange{}
+	x.Key = n
 
 	for _, opt := range opts {
 		opt(x)
@@ -93,15 +69,15 @@ func iprangeGetKey(pe []*gnmi.PathElem) string {
 func iprangeCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
 	niName := iprangeGetKey(pe)
 	return NewIpRange(niName,
-		WithIpRangePrefix(prefix),
-		WithIpRangePathElem(pe),
-		WithIpRangeLogger(log),
-		WithIpRangeStateCache(sc),
-		WithIpRangeConfigCache(cc))
+		dispatcher.WithPrefix(prefix),
+		dispatcher.WithPathElem(pe),
+		dispatcher.WithLogging(log),
+		dispatcher.WithStateCache(sc),
+		dispatcher.WithConfigCache(cc))
 }
 
 func (r *iprange) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	log := r.log.WithValues("Operation", o, "Path Elem", pe)
+	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
 	log.Debug("iprange Handle")
 
@@ -152,7 +128,7 @@ func (r *iprange) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.Pa
 		if err != nil {
 			return nil, err
 		}
-		p = append(p, r.pathElem)
+		p = append(p, r.PathElem)
 		return p, nil
 	}
 	return nil, nil
@@ -163,12 +139,12 @@ func (r *iprange) UpdateStateCache() error {
 	if err != nil {
 		return err
 	}
-	r.log.Debug("iprange Update Cache", "PathElem", pe, "Prefix", r.prefix, "data", r.data)
-	if err := updateCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.log.Debug("iprange Update Error")
+	r.Log.Debug("iprange Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
+		r.Log.Debug("iprange Update Error")
 		return err
 	}
-	r.log.Debug("iprange Update ok")
+	r.Log.Debug("iprange Update ok")
 	return nil
 }
 
@@ -177,7 +153,7 @@ func (r *iprange) DeleteStateCache() error {
 	if err != nil {
 		return err
 	}
-	if err := deleteCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}); err != nil {
+	if err := deleteCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}); err != nil {
 		return err
 	}
 	return nil

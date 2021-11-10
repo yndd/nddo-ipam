@@ -115,7 +115,7 @@ type Server struct {
 	EventChannels map[string]chan event.GenericEvent
 
 	// router
-	root       ipamlogic.Root
+	root       dispatcher.Handler
 	dispatcher *dispatcher.Dispatcher
 	// schema
 	configCache *cache.Cache
@@ -153,10 +153,10 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 
 	// intialize the root handler
 	var err error
-	s.root, err = ipamlogic.NewRoot(
-		ipamlogic.WithRootLogger(s.log),
-		ipamlogic.WithRootConfigCache(s.configCache),
-		ipamlogic.WithRootStateCache(s.stateCache),
+	s.root = ipamlogic.NewRoot(
+		dispatcher.WithLogging(s.log),
+		dispatcher.WithConfigCache(s.configCache),
+		dispatcher.WithStateCache(s.stateCache),
 	)
 	if err != nil {
 		return nil, err

@@ -26,59 +26,35 @@ func init() {
 	})
 }
 
-type IpAddress interface {
-	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
-}
-
 type ipaddress struct {
-	log         logging.Logger
-	configCache *cache.Cache
-	stateCache  *cache.Cache
-	pathElem    *gnmi.PathElem
-	prefix      *gnmi.Path
-	key         string
-	parent      *networkinstance
-	data        *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpAddress
+	dispatcher.Resource
+	data   *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpAddress
+	parent *networkinstance
 }
 
-type IpAddressOption func(*ipaddress)
-
-// WithRirRirLogger initializes the logger.
-func WithIpAddressLogger(log logging.Logger) IpAddressOption {
-	return func(o *ipaddress) {
-		o.log = log
-	}
+func (r *ipaddress) WithLogging(log logging.Logger) {
+	r.Log = log
 }
 
-// WithRirRirCache initializes the cache.
-func WithIpAddressStateCache(c *cache.Cache) IpAddressOption {
-	return func(o *ipaddress) {
-		o.stateCache = c
-	}
+func (r *ipaddress) WithStateCache(c *cache.Cache) {
+	r.StateCache = c
 }
 
-func WithIpAddressConfigCache(c *cache.Cache) IpAddressOption {
-	return func(o *ipaddress) {
-		o.configCache = c
-	}
+func (r *ipaddress) WithConfigCache(c *cache.Cache) {
+	r.ConfigCache = c
 }
 
-func WithIpAddressPrefix(p *gnmi.Path) IpAddressOption {
-	return func(o *ipaddress) {
-		o.prefix = p
-	}
+func (r *ipaddress) WithPrefix(p *gnmi.Path) {
+	r.Prefix = p
 }
 
-func WithIpAddressPathElem(pe []*gnmi.PathElem) IpAddressOption {
-	return func(o *ipaddress) {
-		o.pathElem = pe[0]
-	}
+func (r *ipaddress) WithPathElem(pe []*gnmi.PathElem) {
+	r.PathElem = pe[0]
 }
 
-func NewIpAddress(n string, opts ...IpAddressOption) *ipaddress {
-	x := &ipaddress{
-		key: n,
-	}
+func NewIpAddress(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+	x := &ipaddress{}
+	x.Key = n
 
 	for _, opt := range opts {
 		opt(x)
@@ -93,15 +69,15 @@ func ipaddressGetKey(pe []*gnmi.PathElem) string {
 func ipaddressCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
 	n := ipaddressGetKey(pe)
 	return NewIpAddress(n,
-		WithIpAddressPrefix(prefix),
-		WithIpAddressPathElem(pe),
-		WithIpAddressLogger(log),
-		WithIpAddressStateCache(sc),
-		WithIpAddressConfigCache(cc))
+		dispatcher.WithPrefix(prefix),
+		dispatcher.WithPathElem(pe),
+		dispatcher.WithLogging(log),
+		dispatcher.WithStateCache(sc),
+		dispatcher.WithConfigCache(cc))
 }
 
 func (r *ipaddress) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	log := r.log.WithValues("Operation", o, "Path Elem", pe)
+	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
 	log.Debug("ipaddress Handle")
 
@@ -151,7 +127,7 @@ func (r *ipaddress) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.
 		if err != nil {
 			return nil, err
 		}
-		p = append(p, r.pathElem)
+		p = append(p, r.PathElem)
 		return p, nil
 	}
 	return nil, nil
@@ -162,12 +138,12 @@ func (r *ipaddress) UpdateStateCache() error {
 	if err != nil {
 		return err
 	}
-	r.log.Debug("ipaddress Update Cache", "PathElem", pe, "Prefix", r.prefix, "data", r.data)
-	if err := updateCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.log.Debug("ipaddress Update Error")
+	r.Log.Debug("ipaddress Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
+		r.Log.Debug("ipaddress Update Error")
 		return err
 	}
-	r.log.Debug("ipaddress Update ok")
+	r.Log.Debug("ipaddress Update ok")
 	return nil
 }
 
@@ -176,7 +152,7 @@ func (r *ipaddress) DeleteStateCache() error {
 	if err != nil {
 		return err
 	}
-	if err := deleteCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}); err != nil {
+	if err := deleteCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}); err != nil {
 		return err
 	}
 	return nil

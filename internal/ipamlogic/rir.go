@@ -24,59 +24,35 @@ func init() {
 	})
 }
 
-type Rir interface {
-	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
-}
-
 type rir struct {
-	log         logging.Logger
-	configCache *cache.Cache
-	stateCache  *cache.Cache
-	pathElem    *gnmi.PathElem
-	prefix      *gnmi.Path
-	key         string
-	parent      *ipam
-	data        *ipamv1alpha1.NddoipamIpamRir
+	dispatcher.Resource
+	data   *ipamv1alpha1.NddoipamIpamRir
+	parent *ipam
 }
 
-type RirOption func(*rir)
-
-// WithRirRirLogger initializes the logger.
-func WithRirLogger(log logging.Logger) RirOption {
-	return func(o *rir) {
-		o.log = log
-	}
+func (r *rir) WithLogging(log logging.Logger) {
+	r.Log = log
 }
 
-// WithRirRirCache initializes the cache.
-func WithRirStateCache(c *cache.Cache) RirOption {
-	return func(o *rir) {
-		o.stateCache = c
-	}
+func (r *rir) WithStateCache(c *cache.Cache) {
+	r.StateCache = c
 }
 
-func WithRirConfigCache(c *cache.Cache) RirOption {
-	return func(o *rir) {
-		o.configCache = c
-	}
+func (r *rir) WithConfigCache(c *cache.Cache) {
+	r.ConfigCache = c
 }
 
-func WithRirPrefix(p *gnmi.Path) RirOption {
-	return func(o *rir) {
-		o.prefix = p
-	}
+func (r *rir) WithPrefix(p *gnmi.Path) {
+	r.Prefix = p
 }
 
-func WithRirPathElem(pe []*gnmi.PathElem) RirOption {
-	return func(o *rir) {
-		o.pathElem = pe[0]
-	}
+func (r *rir) WithPathElem(pe []*gnmi.PathElem) {
+	r.PathElem = pe[0]
 }
 
-func NewRir(n string, opts ...RirOption) *rir {
-	x := &rir{
-		key: n,
-	}
+func NewRir(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+	x := &rir{}
+	x.Key = n
 
 	for _, opt := range opts {
 		opt(x)
@@ -91,15 +67,15 @@ func rirGetKey(pe []*gnmi.PathElem) string {
 func rirCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
 	rirName := rirGetKey(pe)
 	return NewRir(rirName,
-		WithRirPrefix(prefix),
-		WithRirPathElem(pe),
-		WithRirLogger(log),
-		WithRirStateCache(sc),
-		WithRirConfigCache(cc))
+		dispatcher.WithPrefix(prefix),
+		dispatcher.WithPathElem(pe),
+		dispatcher.WithLogging(log),
+		dispatcher.WithStateCache(sc),
+		dispatcher.WithConfigCache(cc))
 }
 
 func (r *rir) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	log := r.log.WithValues("Operation", o, "Path Elem", pe)
+	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
 	log.Debug("rir Handle")
 
@@ -144,13 +120,13 @@ func (r *rir) UpdateConfig(d interface{}) error {
 }
 
 func (r *rir) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
-	r.log.Debug("GetPathElem", "PathElem rir", r.pathElem)
+	r.Log.Debug("GetPathElem", "PathElem rir", r.PathElem)
 	if r.parent != nil {
 		p, err := r.parent.GetPathElem(p, true)
 		if err != nil {
 			return nil, err
 		}
-		p = append(p, r.pathElem)
+		p = append(p, r.PathElem)
 		return p, nil
 	}
 	return nil, nil
@@ -161,12 +137,12 @@ func (r *rir) UpdateStateCache() error {
 	if err != nil {
 		return err
 	}
-	r.log.Debug("Rir Update Cache", "PathElem", pe, "Prefix", r.prefix, "data", r.data)
-	if err := updateCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.log.Debug("Rir Update Error")
+	r.Log.Debug("Rir Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
+		r.Log.Debug("Rir Update Error")
 		return err
 	}
-	r.log.Debug("Rir Update ok")
+	r.Log.Debug("Rir Update ok")
 	return nil
 }
 
@@ -175,7 +151,7 @@ func (r *rir) DeleteStateCache() error {
 	if err != nil {
 		return err
 	}
-	if err := deleteCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}); err != nil {
+	if err := deleteCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}); err != nil {
 		return err
 	}
 	return nil

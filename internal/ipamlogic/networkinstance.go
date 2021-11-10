@@ -28,65 +28,42 @@ func init() {
 	})
 }
 
-type NetworkInstance interface {
-	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
-}
-
 type networkinstance struct {
-	log         logging.Logger
-	configCache *cache.Cache
-	stateCache  *cache.Cache
-	pathElem    *gnmi.PathElem
-	prefix      *gnmi.Path
-	key         string
-	parent      *tenant
+	dispatcher.Resource
 	data        *ipamv1alpha1.NddoipamIpamTenantNetworkInstance
+	parent      *tenant
 	ipprefixes  map[string]dispatcher.Handler
 	ipranges    map[string]dispatcher.Handler
 	ipaddresses map[string]dispatcher.Handler
 }
 
-type NetworkInstanceOption func(*networkinstance)
-
-// WithRirRirLogger initializes the logger.
-func WithNetworkInstanceLogger(log logging.Logger) NetworkInstanceOption {
-	return func(o *networkinstance) {
-		o.log = log
-	}
+func (r *networkinstance) WithLogging(log logging.Logger) {
+	r.Log = log
 }
 
-// WithRirRirCache initializes the cache.
-func WithNetworkInstanceStateCache(c *cache.Cache) NetworkInstanceOption {
-	return func(o *networkinstance) {
-		o.stateCache = c
-	}
+func (r *networkinstance) WithStateCache(c *cache.Cache) {
+	r.StateCache = c
 }
 
-func WithNetworkInstanceConfigCache(c *cache.Cache) NetworkInstanceOption {
-	return func(o *networkinstance) {
-		o.configCache = c
-	}
+func (r *networkinstance) WithConfigCache(c *cache.Cache) {
+	r.ConfigCache = c
 }
 
-func WithNetworkInstancePrefix(p *gnmi.Path) NetworkInstanceOption {
-	return func(o *networkinstance) {
-		o.prefix = p
-	}
+func (r *networkinstance) WithPrefix(p *gnmi.Path) {
+	r.Prefix = p
 }
 
-func WithNetworkInstancePathElem(pe []*gnmi.PathElem) NetworkInstanceOption {
-	return func(o *networkinstance) {
-		o.pathElem = pe[0]
-	}
+func (r *networkinstance) WithPathElem(pe []*gnmi.PathElem) {
+	r.PathElem = pe[0]
 }
 
-func NewNetworkInstance(n string, opts ...NetworkInstanceOption) *networkinstance {
+func NewNetworkInstance(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
 	x := &networkinstance{
-		key:         n,
 		ipprefixes:  make(map[string]dispatcher.Handler),
 		ipranges:    make(map[string]dispatcher.Handler),
 		ipaddresses: make(map[string]dispatcher.Handler),
 	}
+	x.Key = n
 
 	for _, opt := range opts {
 		opt(x)
@@ -101,15 +78,15 @@ func networkinstanceGetKey(pe []*gnmi.PathElem) string {
 func networkinstanceCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
 	networkinstanceName := networkinstanceGetKey(pe)
 	return NewNetworkInstance(networkinstanceName,
-		WithNetworkInstancePrefix(prefix),
-		WithNetworkInstancePathElem(pe),
-		WithNetworkInstanceLogger(log),
-		WithNetworkInstanceStateCache(sc),
-		WithNetworkInstanceConfigCache(cc))
+		dispatcher.WithPrefix(prefix),
+		dispatcher.WithPathElem(pe),
+		dispatcher.WithLogging(log),
+		dispatcher.WithStateCache(sc),
+		dispatcher.WithConfigCache(cc))
 }
 
 func (r *networkinstance) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	log := r.log.WithValues("Operation", o, "Path Elem", pe)
+	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
 	log.Debug("networkinstance HandleConfigEvent")
 
@@ -164,7 +141,7 @@ func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfi
 	switch pathElemName {
 	case "ip-prefix":
 		if i, ok := r.ipprefixes[ipprefixGetKey(pe)]; !ok {
-			i = children[pathElemName](r.log, r.configCache, r.stateCache, prefix, pe, d)
+			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -175,7 +152,7 @@ func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfi
 		}
 	case "ip-range":
 		if i, ok := r.ipranges[iprangeGetKey(pe)]; !ok {
-			i = children[pathElemName](r.log, r.configCache, r.stateCache, prefix, pe, d)
+			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -186,7 +163,7 @@ func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfi
 		}
 	case "ip-address":
 		if i, ok := r.ipaddresses[ipaddressGetKey(pe)]; !ok {
-			i = children[pathElemName](r.log, r.configCache, r.stateCache, prefix, pe, d)
+			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -269,13 +246,13 @@ func (r *networkinstance) UpdateConfig(d interface{}) error {
 }
 
 func (r *networkinstance) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
-	r.log.Debug("GetPathElem", "PathElem networkinstance", r.pathElem)
+	r.Log.Debug("GetPathElem", "PathElem networkinstance", r.PathElem)
 	if r.parent != nil {
 		p, err := r.parent.GetPathElem(p, true)
 		if err != nil {
 			return nil, err
 		}
-		p = append(p, r.pathElem)
+		p = append(p, r.PathElem)
 		return p, nil
 	}
 	return nil, nil
@@ -286,12 +263,12 @@ func (r *networkinstance) UpdateStateCache() error {
 	if err != nil {
 		return err
 	}
-	r.log.Debug("NetworkInstance Update Cache", "PathElem", pe, "Prefix", r.prefix, "data", r.data)
-	if err := updateCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.log.Debug("NetworkInstance Update Error")
+	r.Log.Debug("NetworkInstance Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
+		r.Log.Debug("NetworkInstance Update Error")
 		return err
 	}
-	r.log.Debug("NetworkInstance Update ok")
+	r.Log.Debug("NetworkInstance Update ok")
 	return nil
 }
 
@@ -300,7 +277,7 @@ func (r *networkinstance) DeleteStateCache() error {
 	if err != nil {
 		return err
 	}
-	if err := deleteCache(r.log, r.stateCache, r.prefix, &gnmi.Path{Elem: pe}); err != nil {
+	if err := deleteCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}); err != nil {
 		return err
 	}
 	return nil
