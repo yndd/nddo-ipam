@@ -18,7 +18,7 @@ package ipamlogic
 
 import "github.com/openconfig/gnmi/proto/gnmi"
 
-var refPaths = []*gnmi.Path{
+var refPaths2 = []*gnmi.Path{
 	{
 		Elem: []*gnmi.PathElem{
 			{Name: "ipam"},

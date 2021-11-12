@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	ynddparser "github.com/yndd/ndd-yang/pkg/parser"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -35,6 +36,7 @@ import (
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 	"github.com/yndd/nddo-ipam/internal/ipamlogic"
 	"github.com/yndd/nddo-ipam/internal/kapi"
+	"github.com/yndd/nddo-ipam/internal/yangschema"
 )
 
 const (
@@ -117,6 +119,8 @@ type Server struct {
 	// router
 	root       dispatcher.Handler
 	dispatcher *dispatcher.Dispatcher
+	// rootSchema
+	rootSchema yentry.Handler
 	// schema
 	configCache *cache.Cache
 	stateCache  *cache.Cache
@@ -137,14 +141,24 @@ type Server struct {
 
 func NewServer(opts ...ServerOption) (*Server, error) {
 	s := &Server{
-		m:           match.New(),
-		configCache: cache.New([]string{ipam.GnmiTarget}),
-		stateCache:  cache.New([]string{ipam.GnmiTarget}),
+		m: match.New(),
+		//configCache: cache.New([]string{ipam.GnmiTarget}),
+		//stateCache:  cache.New([]string{ipam.GnmiTarget}),
 	}
 
 	for _, opt := range opts {
 		opt(s)
 	}
+
+	s.configCache = cache.New(
+		[]string{ipam.GnmiTarget},
+		cache.WithLogging(s.log))
+
+	s.stateCache = cache.New(
+		[]string{ipam.GnmiTarget},
+		cache.WithLogging(s.log))
+
+	s.rootSchema = yangschema.InitRoot(nil, yentry.WithLogging(s.log))
 
 	// initialize the dispatcher
 	s.dispatcher = dispatcher.New()
@@ -157,6 +171,7 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 		dispatcher.WithLogging(s.log),
 		dispatcher.WithConfigCache(s.configCache),
 		dispatcher.WithStateCache(s.stateCache),
+		dispatcher.WithRootSchema(s.rootSchema),
 	)
 	if err != nil {
 		return nil, err

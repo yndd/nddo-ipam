@@ -2,11 +2,14 @@ package ipamlogic
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
@@ -50,6 +53,10 @@ func (r *ipprefix) WithPrefix(p *gnmi.Path) {
 
 func (r *ipprefix) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
+}
+
+func (r *ipprefix) WithRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
 
 func NewIpPrefix(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
@@ -105,6 +112,10 @@ func (r *ipprefix) SetParent(parent interface{}) error {
 	return nil
 }
 
+func (r *ipprefix) SetRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
+}
+
 func (r *ipprefix) GetChildren() map[string]string {
 	var x map[string]string
 	return x
@@ -114,7 +125,6 @@ func (r *ipprefix) UpdateConfig(d interface{}) error {
 	r.Copy(d)
 
 	// TBD
-
 	if err := r.UpdateStateCache(); err != nil {
 		return err
 	}
@@ -133,6 +143,7 @@ func (r *ipprefix) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.P
 	return nil, nil
 }
 
+/*
 func (r *ipprefix) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
@@ -157,6 +168,7 @@ func (r *ipprefix) DeleteStateCache() error {
 	}
 	return nil
 }
+*/
 
 func (r *ipprefix) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
@@ -168,5 +180,53 @@ func (r *ipprefix) Copy(d interface{}) error {
 		return err
 	}
 	r.data = (&x).DeepCopy()
+	return nil
+}
+
+func (r *ipprefix) UpdateStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(r.data)
+	if err != nil {
+		return err
+	}
+	var x interface{}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return err
+	}
+	//log.Debug("Debug updateState", "refPaths", refPaths)
+	r.Log.Debug("Debug updateState", "data", x)
+	n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
+	if err != nil {
+		return err
+	}
+
+	//printNotification(log, n)
+	if n != nil {
+		if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ipprefix) DeleteStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	n, err := r.StateCache.GetNotificationFromDelete(r.Prefix, &gnmi.Path{Elem: pe})
+	if err != nil {
+		return err
+	}
+	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+
 	return nil
 }

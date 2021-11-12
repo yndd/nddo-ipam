@@ -2,11 +2,14 @@ package ipamlogic
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
@@ -48,6 +51,10 @@ func (r *rir) WithPrefix(p *gnmi.Path) {
 
 func (r *rir) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
+}
+
+func (r *rir) WithRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
 
 func NewRir(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
@@ -103,6 +110,10 @@ func (r *rir) SetParent(parent interface{}) error {
 	return nil
 }
 
+func (r *rir) SetRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
+}
+
 func (r *rir) GetChildren() map[string]string {
 	var x map[string]string
 	return x
@@ -132,6 +143,7 @@ func (r *rir) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathEl
 	return nil, nil
 }
 
+/*
 func (r *rir) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
@@ -156,6 +168,7 @@ func (r *rir) DeleteStateCache() error {
 	}
 	return nil
 }
+*/
 
 func (r *rir) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
@@ -167,5 +180,53 @@ func (r *rir) Copy(d interface{}) error {
 		return err
 	}
 	r.data = (&x).DeepCopy()
+	return nil
+}
+
+func (r *rir) UpdateStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(r.data)
+	if err != nil {
+		return err
+	}
+	var x interface{}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return err
+	}
+	//log.Debug("Debug updateState", "refPaths", refPaths)
+	r.Log.Debug("Debug updateState", "data", x)
+	n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
+	if err != nil {
+		return err
+	}
+
+	//printNotification(log, n)
+	if n != nil {
+		if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *rir) DeleteStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	n, err := r.StateCache.GetNotificationFromDelete(r.Prefix, &gnmi.Path{Elem: pe})
+	if err != nil {
+		return err
+	}
+	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+
 	return nil
 }

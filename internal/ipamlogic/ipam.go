@@ -3,11 +3,13 @@ package ipamlogic
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
@@ -54,6 +56,10 @@ func (r *ipam) WithPrefix(p *gnmi.Path) {
 
 func (r *ipam) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
+}
+
+func (r *ipam) WithRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
 
 func NewIpam(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
@@ -139,6 +145,7 @@ func (r *ipam) CreateChild(children map[string]dispatcher.HandleConfigEventFunc,
 	case "rir":
 		if i, ok := r.rirs[rirGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -150,6 +157,7 @@ func (r *ipam) CreateChild(children map[string]dispatcher.HandleConfigEventFunc,
 	case "tenant":
 		if i, ok := r.tenants[tenantGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -166,6 +174,7 @@ func (r *ipam) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
 	switch pathElemName {
 	case "rir":
 		if i, ok := r.rirs[rirGetKey(pe)]; ok {
+
 			if err := i.DeleteStateCache(); err != nil {
 				return err
 			}
@@ -189,6 +198,10 @@ func (r *ipam) SetParent(parent interface{}) error {
 	return nil
 }
 
+func (r *ipam) SetRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
+}
+
 func (r *ipam) GetChildren() map[string]string {
 	x := make(map[string]string)
 	for k := range r.rirs {
@@ -210,6 +223,7 @@ func (r *ipam) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathE
 	return []*gnmi.PathElem{r.PathElem}, nil
 }
 
+/*
 func (r *ipam) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
@@ -234,6 +248,7 @@ func (r *ipam) DeleteStateCache() error {
 	}
 	return nil
 }
+*/
 
 func (r *ipam) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
@@ -245,5 +260,53 @@ func (r *ipam) Copy(d interface{}) error {
 		return err
 	}
 	r.data = (&x).DeepCopy()
+	return nil
+}
+
+func (r *ipam) UpdateStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(r.data)
+	if err != nil {
+		return err
+	}
+	var x interface{}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return err
+	}
+	//log.Debug("Debug updateState", "refPaths", refPaths)
+	r.Log.Debug("Debug updateState", "data", x)
+	n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
+	if err != nil {
+		return err
+	}
+
+	//printNotification(log, n)
+	if n != nil {
+		if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ipam) DeleteStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	n, err := r.StateCache.GetNotificationFromDelete(r.Prefix, &gnmi.Path{Elem: pe})
+	if err != nil {
+		return err
+	}
+	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+
 	return nil
 }

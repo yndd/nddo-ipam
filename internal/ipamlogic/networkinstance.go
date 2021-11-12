@@ -3,6 +3,7 @@ package ipamlogic
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -10,6 +11,7 @@ import (
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
@@ -55,6 +57,10 @@ func (r *networkinstance) WithPrefix(p *gnmi.Path) {
 
 func (r *networkinstance) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
+}
+
+func (r *networkinstance) WithRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
 
 func NewNetworkInstance(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
@@ -142,6 +148,7 @@ func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfi
 	case "ip-prefix":
 		if i, ok := r.ipprefixes[ipprefixGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -153,6 +160,7 @@ func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfi
 	case "ip-range":
 		if i, ok := r.ipranges[iprangeGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -164,6 +172,7 @@ func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfi
 	case "ip-address":
 		if i, ok := r.ipaddresses[ipaddressGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -207,6 +216,10 @@ func (r *networkinstance) SetParent(parent interface{}) error {
 	}
 	r.parent = p
 	return nil
+}
+
+func (r *networkinstance) SetRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
 
 func (r *networkinstance) GetChildren() map[string]string {
@@ -258,6 +271,7 @@ func (r *networkinstance) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]
 	return nil, nil
 }
 
+/*
 func (r *networkinstance) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
@@ -282,6 +296,7 @@ func (r *networkinstance) DeleteStateCache() error {
 	}
 	return nil
 }
+*/
 
 func (r *networkinstance) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
@@ -293,5 +308,53 @@ func (r *networkinstance) Copy(d interface{}) error {
 		return err
 	}
 	r.data = (&x).DeepCopy()
+	return nil
+}
+
+func (r *networkinstance) UpdateStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(r.data)
+	if err != nil {
+		return err
+	}
+	var x interface{}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return err
+	}
+	//log.Debug("Debug updateState", "refPaths", refPaths)
+	r.Log.Debug("Debug updateState", "data", x)
+	n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
+	if err != nil {
+		return err
+	}
+
+	//printNotification(log, n)
+	if n != nil {
+		if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *networkinstance) DeleteStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	n, err := r.StateCache.GetNotificationFromDelete(r.Prefix, &gnmi.Path{Elem: pe})
+	if err != nil {
+		return err
+	}
+	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+
 	return nil
 }

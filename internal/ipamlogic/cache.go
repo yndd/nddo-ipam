@@ -1,15 +1,6 @@
 package ipamlogic
 
-import (
-	"encoding/json"
-	"fmt"
-	"strings"
-
-	"github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/yndd/ndd-runtime/pkg/logging"
-	"github.com/yndd/ndd-yang/pkg/cache"
-)
-
+/*
 func updateCache(log logging.Logger, c *cache.Cache, prefix *gnmi.Path, path *gnmi.Path, d interface{}) error {
 	b, err := json.Marshal(d)
 	if err != nil {
@@ -49,6 +40,16 @@ func deleteCache(log logging.Logger, c *cache.Cache, prefix *gnmi.Path, path *gn
 
 	return nil
 }
+*/
+
+/*
+func printNotification(log logging.Logger, n *gnmi.Notification) {
+	log.Debug("Debug Notification", "Notification", n)
+	for _, u := range n.GetUpdate() {
+		log.Debug("Update", "Path", u.GetPath(), "Value", u.GetVal())
+	}
+}
+*/
 
 /*
 func getCache(log logging.Logger, c *cache.Cache, prefix, p *gnmi.Path) (*gnmi.TypedValue, error) {
@@ -65,10 +66,3 @@ func getCache(log logging.Logger, c *cache.Cache, prefix, p *gnmi.Path) (*gnmi.T
 	return nil, nil
 }
 */
-
-func printNotification(log logging.Logger, n *gnmi.Notification) {
-	log.Debug("Debug Notification", "Notification", n)
-	for _, u := range n.GetUpdate() {
-		log.Debug("Update", "Path", u.GetPath(), "Value", u.GetVal())
-	}
-}

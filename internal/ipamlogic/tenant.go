@@ -3,6 +3,7 @@ package ipamlogic
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -10,6 +11,7 @@ import (
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
@@ -64,41 +66,9 @@ func (r *tenant) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-/*
-type TenantOption func(*tenant)
-
-// WithRirRirLogger initializes the logger.
-func WithTenantLogger(log logging.Logger) TenantOption {
-	return func(o *tenant) {
-		o.log = log
-	}
+func (r *tenant) WithRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
-
-// WithRirRirCache initializes the cache.
-func WithTenantStateCache(c *cache.Cache) TenantOption {
-	return func(o *tenant) {
-		o.stateCache = c
-	}
-}
-
-func WithTenantConfigCache(c *cache.Cache) TenantOption {
-	return func(o *tenant) {
-		o.configCache = c
-	}
-}
-
-func WithTenantPrefix(p *gnmi.Path) TenantOption {
-	return func(o *tenant) {
-		o.prefix = p
-	}
-}
-
-func WithTenantPathElem(pe []*gnmi.PathElem) TenantOption {
-	return func(o *tenant) {
-		o.pathElem = pe[0]
-	}
-}
-*/
 
 func NewTenant(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
 	x := &tenant{
@@ -146,57 +116,52 @@ func (r *tenant) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe
 		// handle local
 		switch o {
 		case dispatcher.OperationUpdate:
-			i, err := r.UpdateChild(children, pathElemName, prefix, pe, d)
+			i, err := r.CreateChild(children, pathElemName, prefix, pe, d)
 			if err != nil {
 				return nil, err
 			}
-			switch pathElemName {
-			case "network-instance":
-				r.networkInstances[networkinstanceGetKey(pe)] = i
+			if d != nil {
+				if err := i.UpdateConfig(d); err != nil {
+					return nil, err
+				}
+				if err := i.UpdateStateCache(); err != nil {
+					return nil, err
+				}
 			}
 			return i, nil
 		case dispatcher.OperationDelete:
 			if err := r.DeleteChild(pathElemName, pe); err != nil {
 				return nil, err
 			}
-			switch pathElemName {
-			case "network-instance":
-				delete(r.networkInstances, networkinstanceGetKey(pe))
-			}
 			return nil, nil
 		}
 	} else {
-		log.Debug("tenant Handle pathelem >1")
-		switch pathElemName {
-		case "network-instance":
-			if _, ok := r.networkInstances[rirGetKey(pe)]; !ok {
-				// create resource with dummy data
-				i, err := r.UpdateChild(children, pathElemName, prefix, pe[:1], nil)
-				if err != nil {
-					return nil, err
-				}
-				r.networkInstances[networkinstanceGetKey(pe)] = i
-			}
-			return r.networkInstances[networkinstanceGetKey(pe)].HandleConfigEvent(o, prefix, pe[1:], d)
+		log.Debug("ipam Handle pathelem >1")
+		i, err := r.CreateChild(children, pathElemName, prefix, pe[:1], nil)
+		if err != nil {
+			return nil, err
 		}
+		return i.HandleConfigEvent(o, prefix, pe[1:], d)
 	}
 	return nil, nil
 }
 
-func (r *tenant) UpdateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	i := children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
-	if err := i.SetParent(r); err != nil {
-		return nil, err
-	}
-	if d != nil {
-		if err := i.UpdateConfig(d); err != nil {
-			return nil, err
+func (r *tenant) CreateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
+	switch pathElemName {
+	case "network-instance":
+		if i, ok := r.networkInstances[rirGetKey(pe)]; !ok {
+			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+			i.SetRootSchema(r.RootSchema)
+			if err := i.SetParent(r); err != nil {
+				return nil, err
+			}
+			r.networkInstances[rirGetKey(pe)] = i
+			return i, nil
+		} else {
+			return i, nil
 		}
-		if err := i.UpdateStateCache(); err != nil {
-			return nil, err
-		}
 	}
-	return i, nil
+	return nil, nil
 }
 
 func (r *tenant) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
@@ -218,6 +183,10 @@ func (r *tenant) SetParent(parent interface{}) error {
 	}
 	r.parent = p
 	return nil
+}
+
+func (r *tenant) SetRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
 
 func (r *tenant) GetChildren() map[string]string {
@@ -258,6 +227,7 @@ func (r *tenant) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.Pat
 	return nil, nil
 }
 
+/*
 func (r *tenant) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
@@ -282,6 +252,7 @@ func (r *tenant) DeleteStateCache() error {
 	}
 	return nil
 }
+*/
 
 func (r *tenant) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
@@ -293,5 +264,53 @@ func (r *tenant) Copy(d interface{}) error {
 		return err
 	}
 	r.data = (&x).DeepCopy()
+	return nil
+}
+
+func (r *tenant) UpdateStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(r.data)
+	if err != nil {
+		return err
+	}
+	var x interface{}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return err
+	}
+	//log.Debug("Debug updateState", "refPaths", refPaths)
+	r.Log.Debug("Debug updateState", "data", x)
+	n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
+	if err != nil {
+		return err
+	}
+
+	//printNotification(log, n)
+	if n != nil {
+		if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *tenant) DeleteStateCache() error {
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	n, err := r.StateCache.GetNotificationFromDelete(r.Prefix, &gnmi.Path{Elem: pe})
+	if err != nil {
+		return err
+	}
+	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+
 	return nil
 }

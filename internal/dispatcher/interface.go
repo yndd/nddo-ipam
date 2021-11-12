@@ -4,11 +4,13 @@ import (
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 )
 
 type Handler interface {
 	HandleConfigEvent(o Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (Handler, error)
 	SetParent(interface{}) error
+	SetRootSchema(rs yentry.Handler)
 	GetChildren() map[string]string
 	UpdateConfig(interface{}) error
 	UpdateStateCache() error
@@ -18,6 +20,7 @@ type Handler interface {
 	WithConfigCache(c *cache.Cache)
 	WithPrefix(p *gnmi.Path)
 	WithPathElem(pe []*gnmi.PathElem)
+	WithRootSchema(rs yentry.Handler)
 }
 
 type HandlerOption func(Handler)
@@ -54,11 +57,18 @@ func WithPathElem(pe []*gnmi.PathElem) HandlerOption {
 	}
 }
 
+func WithRootSchema(rs yentry.Handler) HandlerOption {
+	return func(o Handler) {
+		o.WithRootSchema(rs)
+	}
+}
+
 type Resource struct {
 	Log         logging.Logger
 	ConfigCache *cache.Cache
 	StateCache  *cache.Cache
 	PathElem    *gnmi.PathElem
 	Prefix      *gnmi.Path
+	RootSchema  yentry.Handler
 	Key         string
 }

@@ -1,17 +1,21 @@
 package ipamlogic
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
 type root struct {
 	dispatcher.Resource
+	data  interface{}
 	ipams map[string]dispatcher.Handler
 }
 
@@ -33,6 +37,10 @@ func (r *root) WithPrefix(p *gnmi.Path) {
 
 func (r *root) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
+}
+
+func (r *root) WithRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
 }
 
 func NewRoot(opts ...dispatcher.HandlerOption) dispatcher.Handler {
@@ -102,6 +110,7 @@ func (r *root) CreateChild(children map[string]dispatcher.HandleConfigEventFunc,
 	case "ipam":
 		if i, ok := r.ipams[ipamGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
@@ -131,6 +140,10 @@ func (r *root) SetParent(parent interface{}) error {
 	return nil
 }
 
+func (r *root) SetRootSchema(rs yentry.Handler) {
+	r.RootSchema = rs
+}
+
 func (r *root) GetChildren() map[string]string {
 	x := make(map[string]string)
 	for k := range r.ipams {
@@ -144,12 +157,54 @@ func (r *root) UpdateConfig(d interface{}) error {
 	return nil
 }
 
+func (r *root) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
+	return nil, nil
+}
+
 func (r *root) UpdateStateCache() error {
-	// no UpdateStateCache required for root
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(r.data)
+	if err != nil {
+		return err
+	}
+	var x interface{}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return err
+	}
+	//log.Debug("Debug updateState", "refPaths", refPaths)
+	r.Log.Debug("Debug updateState", "data", x)
+	n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
+	if err != nil {
+		return err
+	}
+
+	//printNotification(log, n)
+	if n != nil {
+		if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
+				return nil
+			}
+			return err
+		}
+	}
 	return nil
 }
 
 func (r *root) DeleteStateCache() error {
-	// no DeleteStateCache required for root
+	pe, err := r.GetPathElem(nil, true)
+	if err != nil {
+		return err
+	}
+	n, err := r.StateCache.GetNotificationFromDelete(r.Prefix, &gnmi.Path{Elem: pe})
+	if err != nil {
+		return err
+	}
+	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+
 	return nil
 }
