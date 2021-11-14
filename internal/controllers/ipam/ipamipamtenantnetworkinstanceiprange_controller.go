@@ -34,6 +34,7 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	"github.com/yndd/ndd-runtime/pkg/utils"
 	"github.com/yndd/ndd-yang/pkg/parser"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -82,7 +83,7 @@ var localleafRefIpamTenantNetworkinstanceIprange = []*parser.LeafRefGnmi{}
 var externalLeafRefIpamTenantNetworkinstanceIprange = []*parser.LeafRefGnmi{}
 
 // SetupIpamTenantNetworkinstanceIprange adds a controller that reconciles IpamTenantNetworkinstanceIpranges.
-func SetupIpamTenantNetworkinstanceIprange(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string) (string, chan cevent.GenericEvent, error) {
+func SetupIpamTenantNetworkinstanceIprange(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string, rs yentry.Handler) (string, chan cevent.GenericEvent, error) {
 
 	name := managed.ControllerName(ipamv1alpha1.IpamTenantNetworkinstanceIprangeGroupKind)
 
@@ -371,6 +372,7 @@ func (e *externalIpamTenantNetworkinstanceIprange) Observe(ctx context.Context, 
 		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Path:     rootPath,
 		Encoding: gnmi.Encoding_JSON,
+		Type:     gnmi.GetRequest_DataType(gnmi.GetRequest_CONFIG),
 	}
 
 	// gnmi get response

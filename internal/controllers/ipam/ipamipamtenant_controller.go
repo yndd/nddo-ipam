@@ -34,6 +34,7 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	"github.com/yndd/ndd-runtime/pkg/utils"
 	"github.com/yndd/ndd-yang/pkg/parser"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -80,7 +81,7 @@ var localleafRefIpamTenant = []*parser.LeafRefGnmi{}
 var externalLeafRefIpamTenant = []*parser.LeafRefGnmi{}
 
 // SetupIpamTenant adds a controller that reconciles IpamTenants.
-func SetupIpamTenant(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string) (string, chan cevent.GenericEvent, error) {
+func SetupIpamTenant(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string, rs yentry.Handler) (string, chan cevent.GenericEvent, error) {
 
 	name := managed.ControllerName(ipamv1alpha1.IpamTenantGroupKind)
 
@@ -319,6 +320,7 @@ func (e *externalIpamTenant) Observe(ctx context.Context, mg resource.Managed) (
 		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Path:     rootPath,
 		Encoding: gnmi.Encoding_JSON,
+		Type:     gnmi.GetRequest_DataType(gnmi.GetRequest_CONFIG),
 	}
 
 	// gnmi get response

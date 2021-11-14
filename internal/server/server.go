@@ -18,7 +18,10 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net"
+	"strings"
 
 	"github.com/openconfig/gnmi/match"
 	"github.com/openconfig/gnmi/proto/gnmi"
@@ -32,6 +35,7 @@ import (
 
 	"github.com/yndd/ndd-yang/pkg/cache"
 
+	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 	"github.com/yndd/nddo-ipam/internal/ipamlogic"
@@ -142,8 +146,6 @@ type Server struct {
 func NewServer(opts ...ServerOption) (*Server, error) {
 	s := &Server{
 		m: match.New(),
-		//configCache: cache.New([]string{ipam.GnmiTarget}),
-		//stateCache:  cache.New([]string{ipam.GnmiTarget}),
 	}
 
 	for _, opt := range opts {
@@ -199,6 +201,10 @@ func (s *Server) GetStateCache() *cache.Cache {
 	return s.stateCache
 }
 
+func (s *Server) GetRootSchema() yentry.Handler {
+	return s.rootSchema
+}
+
 func (s *Server) Run(ctx context.Context) error {
 	log := s.log.WithValues("grpcServerAddress", s.cfg.GrpcServerAddress)
 	log.Debug("grpc server run...")
@@ -245,4 +251,110 @@ func (s *Server) Start() error {
 		return errors.Wrap(err, errGrpcServer)
 	}
 	return nil
+}
+
+func (s *Server) GetInitialState() error {
+	nddoipam, err := s.client.ListNddoipam(s.ctx)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(nddoipam)
+	if err != nil {
+		return err
+	}
+	var x interface{}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return err
+	}
+
+	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
+
+	n, err := s.GetStateCache().GetNotificationFromJSON2(
+		prefix,
+		&gnmi.Path{},
+		x,
+		s.GetRootSchema())
+	if err != nil {
+		return err
+	}
+	if n != nil {
+		if err := s.GetStateCache().GnmiUpdate(prefix.Target, n); err != nil {
+			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
+				return nil
+			}
+			return err
+		}
+	}
+
+	/*
+		switch x := x1.(type) {
+		case map[string]interface{}:
+			x1 = x["nddo-ipam"]
+		}
+
+		rootPath := []*gnmi.Path{
+			{
+				Elem: []*gnmi.PathElem{
+					{Name: "nddo-ipam"},
+					{Name: "ipam"},
+				},
+			},
+		}
+
+		prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
+
+		updates := s.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], s.parser.XpathToGnmiPath("/", 0), x1, resourceRefPaths)
+		for _, u := range updates {
+			s.log.Debug("Observe Fine Grane Updates X1", "Path", s.parser.GnmiPathToXPath(u.Path, true), "Value", u.GetVal())
+			n, err := s.GetStateCache().GetNotificationFromUpdate(prefix, u)
+			if err != nil {
+				s.log.Debug("GetNotificationFromUpdate Error", "Notification", n, "Error", err)
+				return err
+			}
+			s.log.Debug("Replace", "Notification", n)
+			if n != nil {
+				if err := s.GetStateCache().GnmiUpdate(ipam.GnmiTarget, n); err != nil {
+					s.log.Debug("GnmiUpdate Error", "Notification", n, "Error", err)
+					return err
+				}
+			}
+		}
+	*/
+	return nil
+}
+
+func (s *Server) GetConfig() (*ipamv1alpha1.Ipam, error) {
+	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
+	x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
+	if err != nil {
+		return nil, err
+	}
+	s.log.Debug("GetConfig", "config", x)
+	b, err := json.Marshal(x)
+	if err != nil {
+		return nil, err
+	}
+	n := ipamv1alpha1.Ipam{}
+	if err := json.Unmarshal(b, &n); err != nil {
+		return nil, err
+	}
+	return &n, nil
+}
+
+func (s *Server) GetState() (*ipamv1alpha1.Nddoipam, error) {
+	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
+	x, err := s.GetStateCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
+	if err != nil {
+		return nil, err
+	}
+	s.log.Debug("GetState", "state", x)
+	b, err := json.Marshal(x)
+	if err != nil {
+		return nil, err
+	}
+	n := ipamv1alpha1.Nddoipam{}
+	if err := json.Unmarshal(b, &n); err != nil {
+		return nil, err
+	}
+	return &n, nil
 }

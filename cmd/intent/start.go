@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -38,6 +39,7 @@ import (
 	"github.com/yndd/nddo-ipam/internal/controllers"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 	"github.com/yndd/nddo-ipam/internal/server"
+	"github.com/yndd/nddo-ipam/internal/yangschema"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -79,8 +81,10 @@ var startCmd = &cobra.Command{
 			return errors.Wrap(err, "Cannot create manager")
 		}
 
+		rootSchema := yangschema.InitRoot(nil, yentry.WithLogging(logging.NewLogrLogger(zlog.WithName("yangschema"))))
+
 		// initialize controllers
-		eventChans, err := controllers.Setup(mgr, nddCtlrOptions(concurrency), logging.NewLogrLogger(zlog.WithName("ipam")), pollInterval, namespace)
+		eventChans, err := controllers.Setup(mgr, nddCtlrOptions(concurrency), logging.NewLogrLogger(zlog.WithName("ipam")), pollInterval, namespace, rootSchema)
 		if err != nil {
 			return errors.Wrap(err, "Cannot add nddo controllers to manager")
 		}
@@ -93,27 +97,6 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrap(err, "Cannot create kubernetes client")
 		}
-
-		// initialize the config cache
-		//configcache := cache.New([]string{ipam.GnmiTarget})
-		//stateCache := cache.New([]string{ipam.GnmiTarget})
-		//ipam := ipamlogic.New()
-
-		// initialize the registered resources
-		/*
-			for kind, initializer := range intentlogic.Dispatcher {
-				intentlogic.ResourceDispatcher[kind] = initializer()
-				if err := intentlogic.ResourceDispatcher[kind].Init(
-					intentlogic.WithLogging(logging.NewLogrLogger(zlog.WithName("intentlogic"))),
-					intentlogic.WithStateCache(stateCache),
-					intentlogic.WithParser(logging.NewLogrLogger(zlog.WithName("intentlogic"))),
-					//intentlogic.WithServerPort(strconv.Itoa(pkgmetav1.GnmiServerPort)),
-					intentlogic.WithIpam(ipam),
-				); err != nil {
-					return errors.Wrap(err, "Cannot initialize resources")
-				}
-			}
-		*/
 
 		zlog.Info("Address", "grpcServerAddress", grpcServerAddress)
 		s, err := server.NewServer(

@@ -38,8 +38,8 @@ func (r *ipamTenantNetworkInstanceIpPrefixTag) WithLogging(log logging.Logger) {
 }
 
 func (r *ipamTenantNetworkInstanceIpPrefixTag) GetKeys(p *gnmi.Path) []string {
-	r.Log.Debug("Yangschema GetKeys", "Path", yparser.GnmiPath2XPath(p, true))
-	if len(p.GetElem()) > 1 {
+	r.Log.Debug("Yangschema GetKeys", "Path", yparser.GnmiPath2XPath(p, true), "Name", r.GetName(), "Key", r.GetKey())
+	if len(p.GetElem()) >= 1 {
 		return r.Children[p.GetElem()[0].GetName()].GetKeys(&gnmi.Path{Elem: p.GetElem()[1:]})
 	} else {
 		return r.GetKey()

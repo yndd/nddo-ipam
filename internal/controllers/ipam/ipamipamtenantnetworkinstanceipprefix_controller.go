@@ -34,6 +34,8 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	"github.com/yndd/ndd-runtime/pkg/utils"
 	"github.com/yndd/ndd-yang/pkg/parser"
+	"github.com/yndd/ndd-yang/pkg/yentry"
+	"github.com/yndd/ndd-yang/pkg/yparser"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -57,6 +59,7 @@ const (
 	// resourcePrefixIpamTenantNetworkinstanceIpprefix = "ipam.nddo.yndd.io.v1alpha1.IpamTenantNetworkinstanceIpprefix"
 )
 
+/*
 var resourceRefPathsIpamTenantNetworkinstanceIpprefix = []*gnmi.Path{
 	{
 		Elem: []*gnmi.PathElem{
@@ -76,27 +79,12 @@ var resourceRefPathsIpamTenantNetworkinstanceIpprefix = []*gnmi.Path{
 		},
 	},
 }
+*/
 var localleafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
-var externalLeafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{
-	{
-		LocalPath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "ip-prefix"},
-				{Name: "rir-name"},
-			},
-		},
-		RemotePath: &gnmi.Path{
-			Elem: []*gnmi.PathElem{
-				{Name: "", Key: map[string]string{
-					"": "",
-				}},
-			},
-		},
-	},
-}
+var externalLeafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
 
 // SetupIpamTenantNetworkinstanceIpprefix adds a controller that reconciles IpamTenantNetworkinstanceIpprefixs.
-func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string) (string, chan cevent.GenericEvent, error) {
+func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string, rs yentry.Handler) (string, chan cevent.GenericEvent, error) {
 
 	name := managed.ControllerName(ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupKind)
 
@@ -108,6 +96,7 @@ func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Optio
 			log:         l,
 			kube:        mgr.GetClient(),
 			usage:       resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
+			rootSchema:  rs,
 			newClientFn: target.NewTarget},
 		),
 		managed.WithParser(l),
@@ -304,6 +293,7 @@ type connectorIpamTenantNetworkinstanceIpprefix struct {
 	log         logging.Logger
 	kube        client.Client
 	usage       resource.Tracker
+	rootSchema  yentry.Handler
 	newClientFn func(c *gnmitypes.TargetConfig) *target.Target
 	//newClientFn func(ctx context.Context, cfg ndd.Config) (config.ConfigurationClient, error)
 }
@@ -339,29 +329,22 @@ func (c *connectorIpamTenantNetworkinstanceIpprefix) Connect(ctx context.Context
 	// while here the object is mapped to a single target/network node
 	tns := []string{"localGNMIServer"}
 
-	return &externalIpamTenantNetworkinstanceIpprefix{client: cl, targets: tns, log: log, parser: *parser.NewParser(parser.WithLogger(log))}, nil
+	return &externalIpamTenantNetworkinstanceIpprefix{client: cl, targets: tns, log: log, parser: *parser.NewParser(parser.WithLogger(log)), rootSchema: c.rootSchema}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
 type externalIpamTenantNetworkinstanceIpprefix struct {
 	//client  config.ConfigurationClient
-	client  *target.Target
-	targets []string
-	log     logging.Logger
-	parser  parser.Parser
+	client     *target.Target
+	targets    []string
+	log        logging.Logger
+	parser     parser.Parser
+	rootSchema yentry.Handler
 }
 
-func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
-	if !ok {
-		return managed.ExternalObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
-	}
-	log := e.log.WithValues("Resource", o.GetName())
-	log.Debug("Observing ...")
-
-	// rootpath of the resource
-	rootPath := []*gnmi.Path{
+func (e *externalIpamTenantNetworkinstanceIpprefix) getRootPath(o *ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix) []*gnmi.Path {
+	return []*gnmi.Path{
 		{
 			Elem: []*gnmi.PathElem{
 				{Name: "ipam"},
@@ -377,12 +360,25 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context,
 			},
 		},
 	}
+}
 
-	// gnmi get request
+func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
+	if !ok {
+		return managed.ExternalObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
+	}
+	log := e.log.WithValues("Resource", o.GetName())
+	log.Debug("Observing ...")
+
+	// get the rootpath of the resource
+	rootPath := e.getRootPath(o)
+
+	// populate the gnmi get request
 	req := &gnmi.GetRequest{
 		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
 		Path:     rootPath,
 		Encoding: gnmi.Encoding_JSON,
+		Type:     gnmi.GetRequest_DataType(gnmi.GetRequest_CONFIG),
 	}
 
 	// gnmi get response
@@ -391,75 +387,19 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context,
 		return managed.ExternalObservation{}, errors.Wrap(err, errReadIpamTenantNetworkinstanceIpprefix)
 	}
 
-	// prepare the input data to compare against the response data
-	d, err := json.Marshal(&o.Spec.ForNetworkNode)
+	// processObserve
+	// o. marshal/unmarshal data
+	// 1. check if resource exists
+	// 2. remove parent hierarchical elements from spec
+	// TODO 3. remove resource hierarchicaal elements from gnmi response
+	// 4. transform the data in gnmi to process the delta
+	// 5. find the resource delta: updates and/or deletes in gnmi
+	exists, deletes, updates, err := processObserve("ip-prefix", rootPath[0], &o.Spec.ForNetworkNode, resp, e.rootSchema)
 	if err != nil {
-		return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
+		return managed.ExternalObservation{}, err
 	}
-	var x1 interface{}
-	if err := json.Unmarshal(d, &x1); err != nil {
-		return managed.ExternalObservation{}, errors.Wrap(err, errJSONUnMarshal)
-	}
-
-	// remove the hierarchical elements for data processing, comparison, etc
-	// they are used in the provider for parent dependency resolution
-	// but are not relevant in the data, they are referenced in the rootPath
-	// when interacting with the device driver
-	hids := make([]string, 0)
-	//
-	//
-	//
-	//hids = append(hids, "network-instance-name")
-	//
-	//
-	//
-	//
-	//
-	//hids = append(hids, "tenant-name")
-	//
-	//
-	//
-	//
-	//
-	hids = append(hids, "tenant-name")
-	hids = append(hids, "network-instance-name")
-	x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
-
-	//switch x := x1.(type) {
-	//case map[string]interface{}:
-	//	x1 = x["ip-prefix"]
-	//}
-
-	// validate gnmi resp information
-	var exists bool
-	var x2 interface{}
-	if len(resp.GetNotification()) != 0 {
-		if len(resp.GetNotification()[0].GetUpdate()) != 0 {
-			// get value from gnmi get response
-			x2, err = e.parser.GetValue(resp.GetNotification()[0].GetUpdate()[0].Val)
-			if err != nil {
-				log.Debug("Observe response get value issue")
-				return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
-			}
-			//if x2 != nil {
-			//	exists = true
-			//}
-			switch x := x2.(type) {
-			case map[string]interface{}:
-				if x["ip-prefix"] != nil {
-					exists = true
-				}
-			}
-		}
-	}
-
-	// logging information that will be used to provide the response
-	log.Debug("Spec Data", "X1", x1)
-	log.Debug("Resp Data", "X2", x2)
-
-	// if the cache is not ready we back off and return
 	if !exists {
-		// Resource Does not Exists
+		// No Data exists -> Create
 		log.Debug("Observing Response:", "Exists", false, "HasData", false, "UpToDate", false, "Response", resp)
 		return managed.ExternalObservation{
 			Ready:            true,
@@ -468,46 +408,16 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context,
 			ResourceUpToDate: false,
 		}, nil
 	}
-
-	// data is present
-	// for lists with keys we need to create a list before calulating the paths since this is what
-	// the object eventually happens to be based upon. We avoid having multiple entries in a list object
-	// and hence we have to add this step
-	x1, err = e.parser.AddJSONDataToList(x1)
-	if err != nil {
-		return managed.ExternalObservation{}, errors.Wrap(err, errWrongInputdata)
-	}
-
-	updatesx1 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
-	for _, update := range updatesx1 {
-		log.Debug("Observe Fine Grane Updates X1", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
-	}
-	// for lists with keys we need to create a list before calulating the paths since this is what
-	// the object eventually happens to be based upon. We avoid having multiple entries in a list object
-	// and hence we have to add this step
-	x2, err = e.parser.AddJSONDataToList(x2)
-	if err != nil {
-		return managed.ExternalObservation{}, errors.Wrap(err, errWrongInputdata)
-	}
-	updatesx2 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x2, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
-	for _, update := range updatesx2 {
-		log.Debug("Observe Fine Grane Updates X2", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
-	}
-
-	deletes, updates, err := e.parser.FindResourceDeltaGnmi(updatesx1, updatesx2, log)
-	if err != nil {
-		return managed.ExternalObservation{}, err
-	}
-	// resource is NOT up to date
+	// Data exists
 	if len(deletes) != 0 || len(updates) != 0 {
 		// resource is NOT up to date
 		log.Debug("Observing Response: resource NOT up to date", "Exists", true, "HasData", true, "UpToDate", false, "Response", resp, "Updates", updates, "Deletes", deletes)
 		for _, del := range deletes {
-			log.Debug("Observing Response: resource NOT up to date, deletes", "path", e.parser.GnmiPathToXPath(del, true))
+			log.Debug("Observing Response: resource NOT up to date, deletes", "path", yparser.GnmiPath2XPath(del, true))
 		}
 		for _, upd := range updates {
 			val, _ := e.parser.GetValue(upd.GetVal())
-			log.Debug("Observing Response: resource NOT up to date, updates", "path", e.parser.GnmiPathToXPath(upd.GetPath(), true), "data", val)
+			log.Debug("Observing Response: resource NOT up to date, updates", "path", yparser.GnmiPath2XPath(upd.GetPath(), true), "data", val)
 		}
 		return managed.ExternalObservation{
 			Ready:            true,
@@ -527,6 +437,135 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context,
 		ResourceUpToDate: true,
 	}, nil
 
+	/*
+		// prepare the input data to compare against the response data
+		d, err := json.Marshal(&o.Spec.ForNetworkNode)
+		if err != nil {
+			return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
+		}
+		var x1 interface{}
+		if err := json.Unmarshal(d, &x1); err != nil {
+			return managed.ExternalObservation{}, errors.Wrap(err, errJSONUnMarshal)
+		}
+
+		// removes the hierarchical ids we need for
+		x1 = yparser.RemoveHierIDsFomData(yparser.GetHierIDsFromPath(rootPath[0]), x1)
+
+
+		// validate gnmi resp information
+		var exists bool
+		var x2 interface{}
+		if len(resp.GetNotification()) != 0 && len(resp.GetNotification()[0].GetUpdate()) != 0 {
+			// get value from gnmi get response
+			x2, err = e.parser.GetValue(resp.GetNotification()[0].GetUpdate()[0].Val)
+			if err != nil {
+				log.Debug("Observe response get value issue")
+				return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
+			}
+
+			switch x := x2.(type) {
+			case map[string]interface{}:
+				if x["ip-prefix"] != nil {
+					exists = true
+				}
+			}
+		}
+
+		// logging information that will be used to provide the response
+		log.Debug("Spec Data", "X1", x1)
+		log.Debug("Resp Data", "X2", x2)
+
+		// if the cache is not ready we back off and return
+		if !exists {
+			// Resource Does not Exists
+			log.Debug("Observing Response:", "Exists", false, "HasData", false, "UpToDate", false, "Response", resp)
+			return managed.ExternalObservation{
+				Ready:            true,
+				ResourceExists:   false,
+				ResourceHasData:  false,
+				ResourceUpToDate: false,
+			}, nil
+		}
+
+		// TODO remove hierarchical elements from the data
+
+		// data is present
+		// for lists with keys we need to create a list before calulating the paths since this is what
+		// the object eventually happens to be based upon. We avoid having multiple entries in a list object
+		// and hence we have to add this step
+		if len(rootPath[0].GetElem()[len(rootPath[0].GetElem())-1].GetKey()) != 0 {
+			x1, err = yparser.AddDataToList(x1)
+			if err != nil {
+				return managed.ExternalObservation{}, errors.Wrap(err, errWrongInputdata)
+			}
+		}
+
+		updatesx1, err := yparser.GetUpdatesFromJSON(rootPath[0], x1, e.rootSchema)
+		if err != nil {
+			return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
+		}
+		for _, update := range updatesx1 {
+			log.Debug("Observe Fine Grane Updates X1", "Path", yparser.GnmiPath2XPath(update.Path, true), "Value", update.GetVal())
+		}
+
+		//updatesx1 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
+		//for _, update := range updatesx1 {
+		//	log.Debug("Observe Fine Grane Updates X1", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
+		//}
+		// for lists with keys we need to create a list before calulating the paths since this is what
+		// the object eventually happens to be based upon. We avoid having multiple entries in a list object
+		// and hence we have to add this step
+		if len(rootPath[0].GetElem()[len(rootPath[0].GetElem())-1].GetKey()) != 0 {
+			x2, err = yparser.AddDataToList(x2)
+			if err != nil {
+				return managed.ExternalObservation{}, errors.Wrap(err, errWrongInputdata)
+			}
+		}
+		updatesx2, err := yparser.GetUpdatesFromJSON(rootPath[0], x2, e.rootSchema)
+		if err != nil {
+			return managed.ExternalObservation{}, errors.Wrap(err, errJSONMarshal)
+		}
+		for _, update := range updatesx2 {
+			log.Debug("Observe Fine Grane Updates X1", "Path", yparser.GnmiPath2XPath(update.Path, true), "Value", update.GetVal())
+		}
+		//updatesx2 := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x2, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
+		//for _, update := range updatesx2 {
+		//	log.Debug("Observe Fine Grane Updates X2", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
+		//}
+
+		deletes, updates, err := yparser.FindResourceDelta(updatesx1, updatesx2)
+		if err != nil {
+			return managed.ExternalObservation{}, err
+		}
+		// resource is NOT up to date
+		if len(deletes) != 0 || len(updates) != 0 {
+			// resource is NOT up to date
+			log.Debug("Observing Response: resource NOT up to date", "Exists", true, "HasData", true, "UpToDate", false, "Response", resp, "Updates", updates, "Deletes", deletes)
+			for _, del := range deletes {
+				log.Debug("Observing Response: resource NOT up to date, deletes", "path", e.parser.GnmiPathToXPath(del, true))
+			}
+			for _, upd := range updates {
+				val, _ := e.parser.GetValue(upd.GetVal())
+				log.Debug("Observing Response: resource NOT up to date, updates", "path", e.parser.GnmiPathToXPath(upd.GetPath(), true), "data", val)
+			}
+			return managed.ExternalObservation{
+				Ready:            true,
+				ResourceExists:   true,
+				ResourceHasData:  true,
+				ResourceUpToDate: false,
+				ResourceDeletes:  deletes,
+				ResourceUpdates:  updates,
+			}, nil
+		}
+		// resource is up to date
+		log.Debug("Observing Response: resource up to date", "Exists", true, "HasData", true, "UpToDate", true, "Response", resp)
+		return managed.ExternalObservation{
+			Ready:            true,
+			ResourceExists:   true,
+			ResourceHasData:  true,
+			ResourceUpToDate: true,
+		}, nil
+	*/
 }
 
 func (e *externalIpamTenantNetworkinstanceIpprefix) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
@@ -535,54 +574,17 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Create(ctx context.Context, 
 		return managed.ExternalCreation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 	log := e.log.WithValues("Resource", o.GetName())
-	log.Debug("Creating ...")
+	log.Debug("Creating ...", "Data", &o.Spec.ForNetworkNode)
 
-	rootPath := []*gnmi.Path{
-		{
-			Elem: []*gnmi.PathElem{
-				{Name: "ipam"},
-				{Name: "tenant", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.TenantName,
-				}},
-				{Name: "network-instance", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
-				}},
-				{Name: "ip-prefix", Key: map[string]string{
-					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
-				}},
-			},
-		},
-	}
+	// get the rootpath of the resource
+	rootPath := e.getRootPath(o)
 
-	d, err := json.Marshal(&o.Spec.ForNetworkNode)
-	if err != nil {
-		return managed.ExternalCreation{}, errors.Wrap(err, errJSONMarshal)
-	}
-
-	var x1 interface{}
-	if err := json.Unmarshal(d, &x1); err != nil {
-		return managed.ExternalCreation{}, errors.Wrap(err, errJSONUnMarshal)
-	}
-
-	// remove the hierarchical elements for data processing, comparison, etc
-	// they are used in the provider for parent dependency resolution
-	// but are not relevant in the data, they are referenced in the rootPath
-	// when interacting with the device driver
-	hids := make([]string, 0)
-	hids = append(hids, "network-instance-name")
-	hids = append(hids, "tenant-name")
-	x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
-	// for lists with keys we need to create a list before calulating the paths since this is what
-	// the object eventually happens to be based upon. We avoid having multiple entries in a list object
-	// and hence we have to add this step
-	x1, err = e.parser.AddJSONDataToList(x1)
-	if err != nil {
-		return managed.ExternalCreation{}, errors.Wrap(err, errWrongInputdata)
-	}
-
-	updates := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
+	// processCreate
+	// 0. marshal/unmarshal data
+	// 1. transform the spec data to gnmi updates
+	updates, err := processCreate(rootPath[0], &o.Spec.ForNetworkNode, e.rootSchema)
 	for _, update := range updates {
-		log.Debug("Create Fine Grane Updates", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
+		log.Debug("Create Fine Grane Updates", "Path", yparser.GnmiPath2XPath(update.Path, true), "Value", update.GetVal())
 	}
 
 	if len(updates) == 0 {
@@ -601,6 +603,56 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Create(ctx context.Context, 
 	}
 
 	return managed.ExternalCreation{}, nil
+
+	/*
+		d, err := json.Marshal(&o.Spec.ForNetworkNode)
+		if err != nil {
+			return managed.ExternalCreation{}, errors.Wrap(err, errJSONMarshal)
+		}
+
+		var x1 interface{}
+		if err := json.Unmarshal(d, &x1); err != nil {
+			return managed.ExternalCreation{}, errors.Wrap(err, errJSONUnMarshal)
+		}
+
+		// remove the hierarchical elements for data processing, comparison, etc
+		// they are used in the provider for parent dependency resolution
+		// but are not relevant in the data, they are referenced in the rootPath
+		// when interacting with the device driver
+		hids := make([]string, 0)
+		hids = append(hids, "network-instance-name")
+		hids = append(hids, "tenant-name")
+		x1 = e.parser.RemoveLeafsFromJSONData(x1, hids)
+		// for lists with keys we need to create a list before calulating the paths since this is what
+		// the object eventually happens to be based upon. We avoid having multiple entries in a list object
+		// and hence we have to add this step
+		x1, err = e.parser.AddJSONDataToList(x1)
+		if err != nil {
+			return managed.ExternalCreation{}, errors.Wrap(err, errWrongInputdata)
+		}
+
+		updates := e.parser.GetUpdatesFromJSONDataGnmi(rootPath[0], e.parser.XpathToGnmiPath("/", 0), x1, resourceRefPathsIpamTenantNetworkinstanceIpprefix)
+		for _, update := range updates {
+			log.Debug("Create Fine Grane Updates", "Path", e.parser.GnmiPathToXPath(update.Path, true), "Value", update.GetVal())
+		}
+
+		if len(updates) == 0 {
+			log.Debug("cannot create object since there are no updates present")
+			return managed.ExternalCreation{}, errors.Wrap(err, errCreateObject)
+		}
+
+		req := &gnmi.SetRequest{
+			Prefix:  &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
+			Replace: updates,
+		}
+
+		_, err = e.client.Set(ctx, req)
+		if err != nil {
+			return managed.ExternalCreation{}, errors.Wrap(err, errCreateIpamTenantNetworkinstanceIpprefix)
+		}
+
+		return managed.ExternalCreation{}, nil
+	*/
 }
 
 func (e *externalIpamTenantNetworkinstanceIpprefix) Update(ctx context.Context, mg resource.Managed, obs managed.ExternalObservation) (managed.ExternalUpdate, error) {
@@ -640,22 +692,8 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Delete(ctx context.Context, 
 	log := e.log.WithValues("Resource", o.GetName())
 	log.Debug("Deleting ...")
 
-	rootPath := []*gnmi.Path{
-		{
-			Elem: []*gnmi.PathElem{
-				{Name: "ipam"},
-				{Name: "tenant", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.TenantName,
-				}},
-				{Name: "network-instance", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
-				}},
-				{Name: "ip-prefix", Key: map[string]string{
-					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
-				}},
-			},
-		},
-	}
+	// get the rootpath of the resource
+	rootPath := e.getRootPath(o)
 
 	req := gnmi.SetRequest{
 		Prefix: &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},

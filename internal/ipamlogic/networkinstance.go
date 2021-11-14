@@ -12,6 +12,7 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
 	"github.com/yndd/ndd-yang/pkg/yentry"
+	"github.com/yndd/ndd-yang/pkg/yparser"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
@@ -326,13 +327,17 @@ func (r *networkinstance) UpdateStateCache() error {
 	}
 	//log.Debug("Debug updateState", "refPaths", refPaths)
 	r.Log.Debug("Debug updateState", "data", x)
-	n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
+	u, err := yparser.GetGranularUpdatesFromJSON(&gnmi.Path{Elem: pe}, x, r.RootSchema)
+	n := &gnmi.Notification{
+		Timestamp: time.Now().UnixNano(),
+		Prefix:    r.Prefix,
+		Update:    u,
+	}
+	//n, err := r.StateCache.GetNotificationFromJSON2(r.Prefix, &gnmi.Path{Elem: pe}, x, r.RootSchema)
 	if err != nil {
 		return err
 	}
-
-	//printNotification(log, n)
-	if n != nil {
+	if u != nil {
 		if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
 			if strings.Contains(fmt.Sprintf("%v", err), "stale") {
 				return nil
@@ -348,13 +353,13 @@ func (r *networkinstance) DeleteStateCache() error {
 	if err != nil {
 		return err
 	}
-	n, err := r.StateCache.GetNotificationFromDelete(r.Prefix, &gnmi.Path{Elem: pe})
-	if err != nil {
-		return err
+	n := &gnmi.Notification{
+		Timestamp: time.Now().UnixNano(),
+		Prefix:    r.Prefix,
+		Delete:    []*gnmi.Path{{Elem: pe}},
 	}
 	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
 		return err
 	}
-
 	return nil
 }

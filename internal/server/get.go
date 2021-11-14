@@ -27,6 +27,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/yndd/ndd-yang/pkg/yparser"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 )
 
@@ -37,22 +38,18 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 	}
 	defer s.unaryRPCsem.Release(1)
 
-	log := s.log.WithValues("Path", req.GetPath())
+	log := s.log.WithValues("Type", req.GetType())
+	if req.GetPath() != nil {
+		log.Debug("Get...", "Path", yparser.GnmiPath2XPath(req.GetPath()[0], true))
+	} else {
+		log.Debug("Get...")
+	}
 
 	// we overwrite the gnmi prefix for now
 	prefix := &gnmi.Path{Target: ipam.GnmiTarget, Origin: ipam.GnmiOrigin}
 
-	// this is a debugging capability to show the config cache
-
-	if x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}}); err != nil {
-		return nil, err
-	} else {
-		log.Debug("Get gnmi...", "Data", x)
-	}
-
 	//log.Debug("GNMI GET...")
-
-	updates, err := s.HandleGet(prefix, req.GetPath())
+	updates, err := s.HandleGet(yparser.GetDataType(req.GetType()), prefix, req.GetPath())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %s", err))
 	}
@@ -68,16 +65,17 @@ func (s *Server) Get(ctx context.Context, req *gnmi.GetRequest) (*gnmi.GetRespon
 	}, nil
 }
 
-func (s *Server) HandleGet(prefix *gnmi.Path, reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
+func (s *Server) HandleGet(cacheType string, prefix *gnmi.Path, reqPaths []*gnmi.Path) ([]*gnmi.Update, error) {
 	//var err error
 	updates := make([]*gnmi.Update, 0)
 
-	if reqPaths != nil {
-		s.log.Debug("HandleGet", "reqPaths", reqPaths, "len reqPaths", len(reqPaths[0].GetElem()))
+	cache := s.GetConfigCache()
+	if cacheType == yparser.CacheTypeState {
+		cache = s.GetStateCache()
 	}
 
 	if reqPaths == nil || len(reqPaths[0].GetElem()) == 0 {
-		x, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
+		x, err := cache.GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +84,7 @@ func (s *Server) HandleGet(prefix *gnmi.Path, reqPaths []*gnmi.Path) ([]*gnmi.Up
 		}
 	} else {
 		for _, path := range reqPaths {
-			xx, err := s.GetConfigCache().GetJson(ipam.GnmiTarget, prefix, path)
+			xx, err := cache.GetJson(ipam.GnmiTarget, prefix, path)
 			if err != nil {
 				return nil, err
 			}

@@ -25,13 +25,14 @@ import (
 
 	"github.com/yndd/ndd-runtime/pkg/logging"
 
+	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 )
 
 // Setup package controllers.
-func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll time.Duration, namespace string) (map[string]chan event.GenericEvent, error) {
+func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll time.Duration, namespace string, rs yentry.Handler) (map[string]chan event.GenericEvent, error) {
 	eventChans := make(map[string]chan event.GenericEvent)
-	for _, setup := range []func(ctrl.Manager, controller.Options, logging.Logger, time.Duration, string) (string, chan event.GenericEvent, error){
+	for _, setup := range []func(ctrl.Manager, controller.Options, logging.Logger, time.Duration, string, yentry.Handler) (string, chan event.GenericEvent, error){
 		ipam.SetupIpam,
 		ipam.SetupIpamTenant,
 		ipam.SetupIpamTenantNetworkinstance,
@@ -39,7 +40,7 @@ func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll t
 		ipam.SetupIpamTenantNetworkinstanceIprange,
 		ipam.SetupIpamTenantNetworkinstanceIpaddress,
 	} {
-		gvk, eventChan, err := setup(mgr, option, l, poll, namespace)
+		gvk, eventChan, err := setup(mgr, option, l, poll, namespace, rs)
 		if err != nil {
 			return nil, err
 		}

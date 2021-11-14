@@ -40,7 +40,7 @@ func (r *ipamTenantNetworkInstanceIpAddressIpRange) WithLogging(log logging.Logg
 
 func (r *ipamTenantNetworkInstanceIpAddressIpRange) GetKeys(p *gnmi.Path) []string {
 	r.Log.Debug("Yangschema GetKeys", "Path", yparser.GnmiPath2XPath(p, true))
-	if len(p.GetElem()) > 1 {
+	if len(p.GetElem()) >= 1 {
 		return r.Children[p.GetElem()[0].GetName()].GetKeys(&gnmi.Path{Elem: p.GetElem()[1:]})
 	} else {
 		return r.GetKey()
