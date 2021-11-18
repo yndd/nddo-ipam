@@ -1,47 +1,29 @@
 package yangschema
 
 import (
-	"github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/yndd/ndd-runtime/pkg/logging"
+	"github.com/yndd/ndd-yang/pkg/leafref"
 	"github.com/yndd/ndd-yang/pkg/yentry"
-	"github.com/yndd/ndd-yang/pkg/yparser"
 )
 
-type ipamTenantNetworkInstanceIpPrefixChild struct {
-	*yentry.Entry
-}
-
-func initIpamTenantNetworkInstanceIpPrefixChild(p yentry.Handler, opts ...yentry.HandlerOption) yentry.Handler {
-	children := map[string]yentry.HandleInitFunc{
+func initIpamTenantNetworkInstanceIpPrefixChild(p *yentry.Entry, opts ...yentry.EntryOption) *yentry.Entry {
+	children := map[string]yentry.EntryInitFunc{
 		"ip-prefix": initIpamTenantNetworkInstanceIpPrefixChildIpPrefix,
 	}
 	e := &yentry.Entry{
-		Name:     "child",
-		Key:      []string{},
-		Parent:   p,
-		Children: make(map[string]yentry.Handler),
+		Name:             "child",
+		Key:              []string{},
+		Parent:           p,
+		Children:         make(map[string]*yentry.Entry),
+		ResourceBoundary: false,
+		LeafRefs:         []*leafref.LeafRef{},
 	}
-	r := &ipamTenantNetworkInstanceIpPrefixChild{e}
 
 	for _, opt := range opts {
-		opt(r)
+		opt(e)
 	}
 
 	for name, initFunc := range children {
-		r.Children[name] = initFunc(r, yentry.WithLogging(r.Log))
+		e.Children[name] = initFunc(e, yentry.WithLogging(e.Log))
 	}
-	return r
-}
-
-func (r *ipamTenantNetworkInstanceIpPrefixChild) WithLogging(log logging.Logger) {
-	r.Log = log
-}
-
-func (r *ipamTenantNetworkInstanceIpPrefixChild) GetKeys(p *gnmi.Path) []string {
-	r.Log.Debug("Yangschema GetKeys", "Path", yparser.GnmiPath2XPath(p, true))
-	if len(p.GetElem()) >= 1 {
-		return r.Children[p.GetElem()[0].GetName()].GetKeys(&gnmi.Path{Elem: p.GetElem()[1:]})
-	} else {
-		return r.GetKey()
-	}
+	return e
 }

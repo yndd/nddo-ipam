@@ -124,7 +124,7 @@ type Server struct {
 	root       dispatcher.Handler
 	dispatcher *dispatcher.Dispatcher
 	// rootSchema
-	rootSchema yentry.Handler
+	rootSchema *yentry.Entry
 	// schema
 	configCache *cache.Cache
 	stateCache  *cache.Cache
@@ -201,7 +201,7 @@ func (s *Server) GetStateCache() *cache.Cache {
 	return s.stateCache
 }
 
-func (s *Server) GetRootSchema() yentry.Handler {
+func (s *Server) GetRootSchema() *yentry.Entry {
 	return s.rootSchema
 }
 

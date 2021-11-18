@@ -1,47 +1,29 @@
 package yangschema
 
 import (
-	"github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/yndd/ndd-runtime/pkg/logging"
+	"github.com/yndd/ndd-yang/pkg/leafref"
 	"github.com/yndd/ndd-yang/pkg/yentry"
-	"github.com/yndd/ndd-yang/pkg/yparser"
 )
 
-type ipamTenantNetworkInstanceIpRangeTag struct {
-	*yentry.Entry
-}
-
-func initIpamTenantNetworkInstanceIpRangeTag(p yentry.Handler, opts ...yentry.HandlerOption) yentry.Handler {
-	children := map[string]yentry.HandleInitFunc{}
+func initIpamTenantNetworkInstanceIpRangeTag(p *yentry.Entry, opts ...yentry.EntryOption) *yentry.Entry {
+	children := map[string]yentry.EntryInitFunc{}
 	e := &yentry.Entry{
 		Name: "tag",
 		Key: []string{
 			"key",
 		},
-		Parent:   p,
-		Children: make(map[string]yentry.Handler),
+		Parent:           p,
+		Children:         make(map[string]*yentry.Entry),
+		ResourceBoundary: false,
+		LeafRefs:         []*leafref.LeafRef{},
 	}
-	r := &ipamTenantNetworkInstanceIpRangeTag{e}
 
 	for _, opt := range opts {
-		opt(r)
+		opt(e)
 	}
 
 	for name, initFunc := range children {
-		r.Children[name] = initFunc(r, yentry.WithLogging(r.Log))
+		e.Children[name] = initFunc(e, yentry.WithLogging(e.Log))
 	}
-	return r
-}
-
-func (r *ipamTenantNetworkInstanceIpRangeTag) WithLogging(log logging.Logger) {
-	r.Log = log
-}
-
-func (r *ipamTenantNetworkInstanceIpRangeTag) GetKeys(p *gnmi.Path) []string {
-	r.Log.Debug("Yangschema GetKeys", "Path", yparser.GnmiPath2XPath(p, true))
-	if len(p.GetElem()) >= 1 {
-		return r.Children[p.GetElem()[0].GetName()].GetKeys(&gnmi.Path{Elem: p.GetElem()[1:]})
-	} else {
-		return r.GetKey()
-	}
+	return e
 }

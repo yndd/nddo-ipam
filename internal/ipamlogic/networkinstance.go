@@ -60,7 +60,7 @@ func (r *networkinstance) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-func (r *networkinstance) WithRootSchema(rs yentry.Handler) {
+func (r *networkinstance) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
@@ -219,7 +219,7 @@ func (r *networkinstance) SetParent(parent interface{}) error {
 	return nil
 }
 
-func (r *networkinstance) SetRootSchema(rs yentry.Handler) {
+func (r *networkinstance) SetRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 

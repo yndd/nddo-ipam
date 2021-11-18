@@ -11,8 +11,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.2.1
 	github.com/yndd/ndd-core v0.1.3
-	github.com/yndd/ndd-runtime v0.1.1
-	github.com/yndd/ndd-yang v0.1.235
+	github.com/yndd/ndd-runtime v0.1.2
+	github.com/yndd/ndd-yang v0.1.285
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.39.0
 	k8s.io/apimachinery v0.22.1

@@ -19,6 +19,7 @@ package ipam
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -33,9 +34,11 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/reconciler/managed"
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	"github.com/yndd/ndd-runtime/pkg/utils"
+	"github.com/yndd/ndd-yang/pkg/leafref"
 	"github.com/yndd/ndd-yang/pkg/parser"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
+	"github.com/yndd/ndd-yang/pkg/yresource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -80,15 +83,17 @@ var resourceRefPathsIpamTenantNetworkinstanceIpprefix = []*gnmi.Path{
 	},
 }
 */
-var localleafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
-var externalLeafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
+//var localleafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
+//var externalLeafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
 
 // SetupIpamTenantNetworkinstanceIpprefix adds a controller that reconciles IpamTenantNetworkinstanceIpprefixs.
-func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string, rs yentry.Handler) (string, chan cevent.GenericEvent, error) {
+func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string, rs *yentry.Entry) (string, chan cevent.GenericEvent, error) {
 
 	name := managed.ControllerName(ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupKind)
 
 	events := make(chan cevent.GenericEvent)
+
+	y := initYangIpamTenantNetworkinstanceIpprefix()
 
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupVersionKind),
@@ -97,10 +102,15 @@ func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Optio
 			kube:        mgr.GetClient(),
 			usage:       resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
 			rootSchema:  rs,
+			y:           y,
 			newClientFn: target.NewTarget},
 		),
 		managed.WithParser(l),
-		managed.WithValidator(&validatorIpamTenantNetworkinstanceIpprefix{log: l, parser: *parser.NewParser(parser.WithLogger(l))}),
+		managed.WithValidator(&validatorIpamTenantNetworkinstanceIpprefix{
+			log:        l,
+			rootSchema: rs,
+			y:          y,
+			parser:     *parser.NewParser(parser.WithLogger(l))}),
 		managed.WithLogger(l.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
@@ -116,49 +126,83 @@ func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Optio
 		Complete(r)
 }
 
+type ipamTenantNetworkinstanceIpprefix struct {
+	*yresource.Resource
+}
+
+func initYangIpamTenantNetworkinstanceIpprefix(opts ...yresource.Option) yresource.Handler {
+	rr := &yresource.Resource{}
+	r := &ipamTenantNetworkinstanceIpprefix{rr}
+
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
+}
+
+func (r *ipamTenantNetworkinstanceIpprefix) GetRootPath(mg resource.Managed) []*gnmi.Path {
+	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
+	if !ok {
+		return nil
+	}
+	return []*gnmi.Path{
+		{
+			Elem: []*gnmi.PathElem{
+				{Name: "ipam"},
+				{Name: "tenant", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.TenantName,
+				}},
+				{Name: "network-instance", Key: map[string]string{
+					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
+				}},
+				{Name: "ip-prefix", Key: map[string]string{
+					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
+				}},
+			},
+		},
+	}
+}
+
+func (r *ipamTenantNetworkinstanceIpprefix) GetParentDependency(mg resource.Managed) []*leafref.LeafRef {
+	rootPath := r.GetRootPath(mg)
+	// if the path is not bigger than 1 element there is no parent dependency
+	if len(rootPath[0].GetElem()) < 2 {
+		return []*leafref.LeafRef{}
+	}
+	// the dependency path is the rootPath except for the last element
+	dependencyPathElem := rootPath[0].GetElem()[:(len(rootPath[0].GetElem()) - 1)]
+	// check for keys present, if no keys present we return an empty list
+	keysPresent := false
+	for _, pathElem := range dependencyPathElem {
+		if len(pathElem.GetKey()) != 0 {
+			keysPresent = true
+		}
+	}
+	if !keysPresent {
+		return []*leafref.LeafRef{}
+	}
+
+	fmt.Printf("GetParentDependency ipprefix: %v\n", yparser.GnmiPath2XPath(&gnmi.Path{Elem: dependencyPathElem}, true))
+
+	// return the rootPath except the last entry
+	return []*leafref.LeafRef{{RemotePath: &gnmi.Path{Elem: dependencyPathElem}}}
+}
+
 type validatorIpamTenantNetworkinstanceIpprefix struct {
-	log    logging.Logger
-	parser parser.Parser
+	log        logging.Logger
+	parser     parser.Parser
+	rootSchema *yentry.Entry
+	y          yresource.Handler
 }
 
 func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateLocalleafRef(ctx context.Context, mg resource.Managed) (managed.ValidateLocalleafRefObservation, error) {
-	log := v.log.WithValues("resource", mg.GetName())
-	log.Debug("ValidateLocalleafRef...")
-
-	// json unmarshal the resource
-	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
-	if !ok {
-		return managed.ValidateLocalleafRefObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
-	}
-	d, err := json.Marshal(&o.Spec.ForNetworkNode)
-	if err != nil {
-		return managed.ValidateLocalleafRefObservation{}, errors.Wrap(err, errJSONMarshal)
-	}
-	var x1 interface{}
-	json.Unmarshal(d, &x1)
-
-	// For local leafref validation we dont need to supply the external data so we use nil
-	success, resultleafRefValidation, err := v.parser.ValidateLeafRefGnmi(
-		parser.LeafRefValidationLocal, x1, nil, localleafRefIpamTenantNetworkinstanceIpprefix, log)
-	if err != nil {
-		return managed.ValidateLocalleafRefObservation{
-			Success: false,
-		}, nil
-	}
-	if !success {
-		log.Debug("ValidateLocalleafRef failed", "resultleafRefValidation", resultleafRefValidation)
-		return managed.ValidateLocalleafRefObservation{
-			Success:          false,
-			ResolvedLeafRefs: resultleafRefValidation}, nil
-	}
-	log.Debug("ValidateLocalleafRef success", "resultleafRefValidation", resultleafRefValidation)
 	return managed.ValidateLocalleafRefObservation{
 		Success:          true,
-		ResolvedLeafRefs: resultleafRefValidation}, nil
+		ResolvedLeafRefs: []*leafref.ResolvedLeafRef{}}, nil
 }
 
 func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateExternalleafRef(ctx context.Context, mg resource.Managed, cfg []byte) (managed.ValidateExternalleafRefObservation, error) {
-	log := v.log.WithValues("resource", mg.GetName())
+	log := v.log.WithValues("resource", mg.GetName(), "kind", mg.GetObjectKind())
 	log.Debug("ValidateExternalleafRef...")
 
 	// json unmarshal the resource
@@ -177,79 +221,73 @@ func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateExternalleafRef(ctx
 	var x2 interface{}
 	json.Unmarshal(cfg, &x2)
 
+	rootPath := v.y.GetRootPath(o)
+
+	leafRefs := v.rootSchema.GetLeafRefsLocal(true, rootPath[0], &gnmi.Path{}, make([]*leafref.LeafRef, 0))
+	log.Debug("Validate leafRefs ...", "Path", yparser.GnmiPath2XPath(rootPath[0], false), "leafRefs", leafRefs)
+
 	// For local external leafref validation we need to supply the external
 	// data to validate the remote leafref, we use x2 for this
-	success, resultleafRefValidation, err := v.parser.ValidateLeafRefGnmi(
-		parser.LeafRefValidationExternal, x1, x2, externalLeafRefIpamTenantNetworkinstanceIpprefix, log)
+	success, resultValidation, err := yparser.ValidateLeafRef(
+		rootPath[0], x1, x2, leafRefs, v.rootSchema)
 	if err != nil {
 		return managed.ValidateExternalleafRefObservation{
 			Success: false,
 		}, nil
 	}
 	if !success {
-		log.Debug("ValidateExternalleafRef failed", "resultleafRefValidation", resultleafRefValidation)
+		log.Debug("ValidateExternalleafRef failed", "resultleafRefValidation", resultValidation)
 		return managed.ValidateExternalleafRefObservation{
 			Success:          false,
-			ResolvedLeafRefs: resultleafRefValidation}, nil
+			ResolvedLeafRefs: resultValidation}, nil
 	}
-	log.Debug("ValidateExternalleafRef success", "resultleafRefValidation", resultleafRefValidation)
+	log.Debug("ValidateExternalleafRef success", "resultleafRefValidation", resultValidation)
 	return managed.ValidateExternalleafRefObservation{
 		Success:          true,
-		ResolvedLeafRefs: resultleafRefValidation}, nil
+		ResolvedLeafRefs: resultValidation}, nil
 }
 
 func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateParentDependency(ctx context.Context, mg resource.Managed, cfg []byte) (managed.ValidateParentDependencyObservation, error) {
-	log := v.log.WithValues("resource", mg.GetName())
+	log := v.log.WithValues("resource", mg.GetName(), "kind", mg.GetObjectKind())
 	log.Debug("ValidateParentDependency...")
 
 	// we initialize a global list for finer information on the resolution
-	resultleafRefValidation := make([]*parser.ResolvedLeafRefGnmi, 0)
 	// json unmarshal the resource
 	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
 	if !ok {
 		return managed.ValidateParentDependencyObservation{}, errors.New(errUnexpectedIpamTenantNetworkinstanceIpprefix)
 	}
 
-	dependencyLeafRef := []*parser.LeafRefGnmi{
-		{
-			RemotePath: &gnmi.Path{
-				Elem: []*gnmi.PathElem{
-					{Name: "ipam"},
-					{Name: "tenant", Key: map[string]string{"name": *o.Spec.ForNetworkNode.TenantName}},
-					{Name: "network-instance", Key: map[string]string{"name": *o.Spec.ForNetworkNode.NetworkInstanceName}},
-				},
-			},
-		},
-	}
+	dependencyLeafRef := v.y.GetParentDependency(o)
 
 	// unmarshal the config
 	var x1 interface{}
 	json.Unmarshal(cfg, &x1)
-	//log.Debug("Latest Config", "data", x1)
+	log.Debug("Latest Config", "data", x1)
 
-	success, resultleafRefValidation, err := v.parser.ValidateParentDependency(
-		x1, dependencyLeafRef, log)
+	success, resultValidation, err := yparser.ValidateParentDependency(
+		x1, dependencyLeafRef, v.rootSchema)
 	if err != nil {
 		return managed.ValidateParentDependencyObservation{
 			Success: false,
 		}, nil
 	}
 	if !success {
-		log.Debug("ValidateParentDependency failed", "resultParentValidation", resultleafRefValidation)
+		log.Debug("ValidateParentDependency failed", "resultParentValidation", resultValidation)
 		return managed.ValidateParentDependencyObservation{
 			Success:          false,
-			ResolvedLeafRefs: resultleafRefValidation}, nil
+			ResolvedLeafRefs: resultValidation}, nil
 	}
-	log.Debug("ValidateParentDependency success", "resultParentValidation", resultleafRefValidation)
+	log.Debug("ValidateParentDependency success", "resultParentValidation", resultValidation)
 	return managed.ValidateParentDependencyObservation{
 		Success:          true,
-		ResolvedLeafRefs: resultleafRefValidation}, nil
+		ResolvedLeafRefs: resultValidation}, nil
 }
 
 // ValidateResourceIndexes validates if the indexes of a resource got changed
 // if so we need to delete the original resource, because it will be dangling if we dont delete it
 func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateResourceIndexes(ctx context.Context, mg resource.Managed) (managed.ValidateResourceIndexesObservation, error) {
-	log := v.log.WithValues("resource", mg.GetName())
+	log := v.log.WithValues("resource", mg.GetName(), "kind", mg.GetObjectKind().GroupVersionKind().Kind)
 
 	// json unmarshal the resource
 	o, ok := mg.(*ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix)
@@ -258,22 +296,7 @@ func (v *validatorIpamTenantNetworkinstanceIpprefix) ValidateResourceIndexes(ctx
 	}
 	log.Debug("ValidateResourceIndexes", "Spec", o.Spec)
 
-	rootPath := []*gnmi.Path{
-		{
-			Elem: []*gnmi.PathElem{
-				{Name: "ipam"},
-				{Name: "tenant", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.TenantName,
-				}},
-				{Name: "network-instance", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
-				}},
-				{Name: "ip-prefix", Key: map[string]string{
-					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
-				}},
-			},
-		},
-	}
+	rootPath := v.y.GetRootPath(o)
 
 	origResourceIndex := mg.GetResourceIndexes()
 	// we call the CompareConfigPathsWithResourceKeys irrespective is the get resource index returns nil
@@ -293,7 +316,8 @@ type connectorIpamTenantNetworkinstanceIpprefix struct {
 	log         logging.Logger
 	kube        client.Client
 	usage       resource.Tracker
-	rootSchema  yentry.Handler
+	rootSchema  *yentry.Entry
+	y           yresource.Handler
 	newClientFn func(c *gnmitypes.TargetConfig) *target.Target
 	//newClientFn func(ctx context.Context, cfg ndd.Config) (config.ConfigurationClient, error)
 }
@@ -329,7 +353,7 @@ func (c *connectorIpamTenantNetworkinstanceIpprefix) Connect(ctx context.Context
 	// while here the object is mapped to a single target/network node
 	tns := []string{"localGNMIServer"}
 
-	return &externalIpamTenantNetworkinstanceIpprefix{client: cl, targets: tns, log: log, parser: *parser.NewParser(parser.WithLogger(log)), rootSchema: c.rootSchema}, nil
+	return &externalIpamTenantNetworkinstanceIpprefix{client: cl, targets: tns, log: log, parser: *parser.NewParser(parser.WithLogger(log)), rootSchema: c.rootSchema, y: c.y}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -340,26 +364,8 @@ type externalIpamTenantNetworkinstanceIpprefix struct {
 	targets    []string
 	log        logging.Logger
 	parser     parser.Parser
-	rootSchema yentry.Handler
-}
-
-func (e *externalIpamTenantNetworkinstanceIpprefix) getRootPath(o *ipamv1alpha1.IpamIpamTenantNetworkinstanceIpprefix) []*gnmi.Path {
-	return []*gnmi.Path{
-		{
-			Elem: []*gnmi.PathElem{
-				{Name: "ipam"},
-				{Name: "tenant", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.TenantName,
-				}},
-				{Name: "network-instance", Key: map[string]string{
-					"name": *o.Spec.ForNetworkNode.NetworkInstanceName,
-				}},
-				{Name: "ip-prefix", Key: map[string]string{
-					"prefix": *o.Spec.ForNetworkNode.IpamIpamTenantNetworkinstanceIpprefix.Prefix,
-				}},
-			},
-		},
-	}
+	rootSchema *yentry.Entry
+	y          yresource.Handler
 }
 
 func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -371,7 +377,12 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context,
 	log.Debug("Observing ...")
 
 	// get the rootpath of the resource
-	rootPath := e.getRootPath(o)
+	rootPath := e.y.GetRootPath(o)
+	hierElements := e.rootSchema.GetHierarchicalResourcesLocal(true, rootPath[0], &gnmi.Path{}, make([]*gnmi.Path, 0))
+	log.Debug("Observing hierElements ...", "Path", yparser.GnmiPath2XPath(rootPath[0], false), "hierElements", hierElements)
+
+	leafRefs := e.rootSchema.GetLeafRefsLocal(true, rootPath[0], &gnmi.Path{}, make([]*leafref.LeafRef, 0))
+	log.Debug("Observing leafRefs ...", "Path", yparser.GnmiPath2XPath(rootPath[0], false), "leafRefs", leafRefs)
 
 	// populate the gnmi get request
 	req := &gnmi.GetRequest{
@@ -394,7 +405,7 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Observe(ctx context.Context,
 	// TODO 3. remove resource hierarchicaal elements from gnmi response
 	// 4. transform the data in gnmi to process the delta
 	// 5. find the resource delta: updates and/or deletes in gnmi
-	exists, deletes, updates, err := processObserve("ip-prefix", rootPath[0], &o.Spec.ForNetworkNode, resp, e.rootSchema)
+	exists, deletes, updates, err := processObserve(rootPath[0], hierElements, &o.Spec.ForNetworkNode, resp, e.rootSchema)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -577,7 +588,7 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Create(ctx context.Context, 
 	log.Debug("Creating ...", "Data", &o.Spec.ForNetworkNode)
 
 	// get the rootpath of the resource
-	rootPath := e.getRootPath(o)
+	rootPath := e.y.GetRootPath(o)
 
 	// processCreate
 	// 0. marshal/unmarshal data
@@ -693,7 +704,7 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) Delete(ctx context.Context, 
 	log.Debug("Deleting ...")
 
 	// get the rootpath of the resource
-	rootPath := e.getRootPath(o)
+	rootPath := e.y.GetRootPath(o)
 
 	req := gnmi.SetRequest{
 		Prefix: &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
@@ -716,8 +727,9 @@ func (e *externalIpamTenantNetworkinstanceIpprefix) GetConfig(ctx context.Contex
 	e.log.Debug("Get Config ...")
 	req := &gnmi.GetRequest{
 		Prefix:   &gnmi.Path{Target: GnmiTarget, Origin: GnmiOrigin},
-		Path:     []*gnmi.Path{},
+		Path:     []*gnmi.Path{{Elem: []*gnmi.PathElem{}}},
 		Encoding: gnmi.Encoding_JSON,
+		Type:     gnmi.GetRequest_DataType(gnmi.GetRequest_CONFIG),
 	}
 
 	resp, err := e.client.Get(ctx, req)

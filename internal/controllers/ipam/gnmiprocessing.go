@@ -38,7 +38,7 @@ const (
 // TODO 3. remove resource hierarchicaal elements from gnmi response
 // 4. transform the data in gnmi to process the delta
 // 5. find the resource delta: updates and/or deletes in gnmi
-func processObserve(resourceName string, rootPath *gnmi.Path, specData interface{}, resp *gnmi.GetResponse, rootSchema yentry.Handler) (bool, []*gnmi.Path, []*gnmi.Update, error) {
+func processObserve(rootPath *gnmi.Path, hierPaths []*gnmi.Path, specData interface{}, resp *gnmi.GetResponse, rootSchema *yentry.Entry) (bool, []*gnmi.Path, []*gnmi.Update, error) {
 	// prepare the input data to compare against the response data
 	x1, err := processSpecData(rootPath, specData)
 	if err != nil {
@@ -54,31 +54,51 @@ func processObserve(resourceName string, rootPath *gnmi.Path, specData interface
 			return false, nil, nil, errors.Wrap(err, errJSONMarshal)
 		}
 
-		switch x := x2.(type) {
-		case map[string]interface{}:
-			if x[resourceName] == nil {
-				// resource does not exist and we return
-				// RESOURCE DOES NOT EXIST
-				return false, nil, nil, nil
-			}
+		fmt.Printf("processObserve: raw x2: %v\n", x2)
+
+		switch x2.(type) {
+		case nil:
+			// resource does not exist and we return
+			// RESOURCE DOES NOT EXIST
+			return false, nil, nil, nil
+
 		}
+		/*
+			switch x := x2.(type) {
+			case map[string]interface{}:
+				if x[resourceName] == nil {
+					// resource does not exist and we return
+					// RESOURCE DOES NOT EXIST
+					return false, nil, nil, nil
+				}
+			}
+		*/
 	}
 	// RESOURCE EXISTS
 
 	fmt.Printf("processObserve rootPath %s\n", yparser.GnmiPath2XPath(rootPath, true))
+	// for the Spec data we remove the first element which is aligned with the last element of the rootPath
+	// gnmi does not return this information hence to compare the spec data with the gnmi resp data we need to remove
+	// the first element from the Spec
 	switch x := x1.(type) {
 	case map[string]interface{}:
 		x1 = x[rootPath.GetElem()[len(rootPath.GetElem())-1].GetName()]
 		fmt.Printf("processObserve x1 data %v\n", x1)
 	}
+	// the gnmi response already comes without the last element in the return data
+	fmt.Printf("processObserve x2 data %v\n", x2)
+
+	// remove hierarchical resource elements from the data to be able to compare the gnmi response
+	// with the k8s Spec
 	switch x := x2.(type) {
 	case map[string]interface{}:
-		x2 = x[rootPath.GetElem()[len(rootPath.GetElem())-1].GetName()]
-		fmt.Printf("processObserve x2 data %v\n", x2)
+		for _, hierPath := range hierPaths {
+			x2 = removeHierarchicalResourceData(x, hierPath)
+		}
+
 	}
 
-	// TODO remove hierarchical elements from the data
-
+	fmt.Printf("processObserve x2 data %v\n", x2)
 	// data is present
 	// for lists with keys we need to create a list before calulating the paths since this is what
 	// the object eventually happens to be based upon. We avoid having multiple entries in a list object
@@ -134,7 +154,7 @@ func processObserve(resourceName string, rootPath *gnmi.Path, specData interface
 // processCreate
 // o. marshal/unmarshal data
 // 1. transform the spec data to gnmi updates
-func processCreate(rootPath *gnmi.Path, specData interface{}, rootSchema yentry.Handler) ([]*gnmi.Update, error) {
+func processCreate(rootPath *gnmi.Path, specData interface{}, rootSchema *yentry.Entry) ([]*gnmi.Update, error) {
 	// prepare the input data to compare against the response data
 	x1, err := processSpecData(rootPath, specData)
 	if err != nil {
@@ -174,7 +194,33 @@ func processSpecData(rootPath *gnmi.Path, specData interface{}) (interface{}, er
 	if err := json.Unmarshal(d, &x1); err != nil {
 		return nil, errors.Wrap(err, errJSONUnMarshal)
 	}
-	// removes the hierarchical ids; they are there to define the parent in k8s so
+	// removes the parent hierarchical ids; they are there to define the parent in k8s so
 	// we can define the full path in gnmi
 	return yparser.RemoveHierIDsFomData(yparser.GetHierIDsFromPath(rootPath), x1), nil
+}
+
+func removeHierarchicalResourceData(x map[string]interface{}, hierPath *gnmi.Path) interface{} {
+	// this is the last pathElem of the hierarchical path, which is to be deleted
+	if len(hierPath.GetElem()) == 1 {
+		delete(x, hierPath.GetElem()[0].GetName())
+	} else {
+		// there is more pathElem in the hierachical Path
+		if xx, ok := x[hierPath.GetElem()[0].GetName()]; ok {
+			switch x1 := xx.(type) {
+			case map[string]interface{}:
+				removeHierarchicalResourceData(x1, &gnmi.Path{Elem: hierPath.GetElem()[1:]})
+			case []interface{}:
+				for _, xxx := range x1 {
+					switch x2 := xxx.(type) {
+					case map[string]interface{}:
+						removeHierarchicalResourceData(x2, &gnmi.Path{Elem: hierPath.GetElem()[1:]})
+					}
+				}
+			default:
+				// it can be that no data is present, so we ignore this
+			}
+		}
+	}
+
+	return x
 }

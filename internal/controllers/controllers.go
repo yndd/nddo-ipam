@@ -30,9 +30,9 @@ import (
 )
 
 // Setup package controllers.
-func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll time.Duration, namespace string, rs yentry.Handler) (map[string]chan event.GenericEvent, error) {
+func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll time.Duration, namespace string, rs *yentry.Entry) (map[string]chan event.GenericEvent, error) {
 	eventChans := make(map[string]chan event.GenericEvent)
-	for _, setup := range []func(ctrl.Manager, controller.Options, logging.Logger, time.Duration, string, yentry.Handler) (string, chan event.GenericEvent, error){
+	for _, setup := range []func(ctrl.Manager, controller.Options, logging.Logger, time.Duration, string, *yentry.Entry) (string, chan event.GenericEvent, error){
 		ipam.SetupIpam,
 		ipam.SetupIpamTenant,
 		ipam.SetupIpamTenantNetworkinstance,

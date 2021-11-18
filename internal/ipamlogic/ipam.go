@@ -60,7 +60,7 @@ func (r *ipam) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-func (r *ipam) WithRootSchema(rs yentry.Handler) {
+func (r *ipam) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
@@ -200,7 +200,7 @@ func (r *ipam) SetParent(parent interface{}) error {
 	return nil
 }
 
-func (r *ipam) SetRootSchema(rs yentry.Handler) {
+func (r *ipam) SetRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 

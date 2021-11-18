@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/openconfig/gnmi/proto/gnmi"
@@ -74,43 +73,59 @@ func (s *Server) HandleGet(cacheType string, prefix *gnmi.Path, reqPaths []*gnmi
 		cache = s.GetStateCache()
 	}
 
-	if reqPaths == nil || len(reqPaths[0].GetElem()) == 0 {
-		x, err := cache.GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
+	//if reqPaths == nil || len(reqPaths[0].GetElem()) == 0 {
+	//	reqPaths = append(reqPaths, &gnmi.Path{Elem: []*gnmi.PathElem{}})
+	//}
+	for _, path := range reqPaths {
+		x, err := cache.GetJson(ipam.GnmiTarget, prefix, path)
 		if err != nil {
 			return nil, err
 		}
-		if updates, err = appendUpdateResponse(x, &gnmi.Path{}, updates); err != nil {
+
+		if updates, err = appendUpdateResponse(x, path, updates); err != nil {
 			return nil, err
 		}
-	} else {
-		for _, path := range reqPaths {
-			xx, err := cache.GetJson(ipam.GnmiTarget, prefix, path)
+	}
+
+	/*
+		if reqPaths == nil || len(reqPaths[0].GetElem()) == 0 {
+			x, err := cache.GetJson(ipam.GnmiTarget, prefix, &gnmi.Path{Elem: []*gnmi.PathElem{}})
 			if err != nil {
 				return nil, err
 			}
-			x, err := s.parser.DeepCopy(xx)
-			if err != nil {
-				if !strings.Contains(fmt.Sprint(err), "in cannot be nil") {
+			if updates, err = appendUpdateResponse(x, &gnmi.Path{}, updates); err != nil {
+				return nil, err
+			}
+		} else {
+			for _, path := range reqPaths {
+				xx, err := cache.GetJson(ipam.GnmiTarget, prefix, path)
+				if err != nil {
+					return nil, err
+				}
+				x, err := s.parser.DeepCopy(xx)
+				if err != nil {
+					if !strings.Contains(fmt.Sprint(err), "in cannot be nil") {
+						return nil, err
+					}
+				}
+				// prepareResponseData prepare the response data aligned with the controller
+				// 1. the hierarchical elements are removed
+				// 2. add the last element of the path back to the return data
+				hElem, ok := hPathElements[*s.parser.GnmiPathToXPath(path, false)]
+				if !ok {
+					hElem = []string{}
+				}
+				s.log.Debug("prepareResponseData", "Path", s.parser.GnmiPathToXPath(path, true))
+				newx, err := prepareResponseData(x, path, hElem)
+				if err != nil {
+					return nil, err
+				}
+				if updates, err = appendUpdateResponse(newx, &gnmi.Path{}, updates); err != nil {
 					return nil, err
 				}
 			}
-			// prepareResponseData prepare the response data aligned with the controller
-			// 1. the hierarchical elements are removed
-			// 2. add the last element of the path back to the return data
-			hElem, ok := hPathElements[*s.parser.GnmiPathToXPath(path, false)]
-			if !ok {
-				hElem = []string{}
-			}
-			s.log.Debug("prepareResponseData", "Path", s.parser.GnmiPathToXPath(path, true))
-			newx, err := prepareResponseData(x, path, hElem)
-			if err != nil {
-				return nil, err
-			}
-			if updates, err = appendUpdateResponse(newx, &gnmi.Path{}, updates); err != nil {
-				return nil, err
-			}
 		}
-	}
+	*/
 	return updates, nil
 }
 

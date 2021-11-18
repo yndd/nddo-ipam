@@ -57,7 +57,7 @@ func (r *ipprefix) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-func (r *ipprefix) WithRootSchema(rs yentry.Handler) {
+func (r *ipprefix) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
@@ -114,7 +114,7 @@ func (r *ipprefix) SetParent(parent interface{}) error {
 	return nil
 }
 
-func (r *ipprefix) SetRootSchema(rs yentry.Handler) {
+func (r *ipprefix) SetRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 

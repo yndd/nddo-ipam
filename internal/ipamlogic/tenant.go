@@ -67,7 +67,7 @@ func (r *tenant) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-func (r *tenant) WithRootSchema(rs yentry.Handler) {
+func (r *tenant) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
@@ -186,7 +186,7 @@ func (r *tenant) SetParent(parent interface{}) error {
 	return nil
 }
 
-func (r *tenant) SetRootSchema(rs yentry.Handler) {
+func (r *tenant) SetRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
