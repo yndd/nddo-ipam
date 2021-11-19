@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package gnmiserver
 
+/*
 var hPathElements = map[string]interface{}{
 	"/ipam": map[string]interface{}{
 		"tenant": nil,
@@ -32,3 +33,5 @@ var hPathElements = map[string]interface{}{
 	"/ipam/instance/network-instance/ip-range":   nil,
 	"/ipam/instance/network-instance/ip-address": nil,
 }
+
+*/

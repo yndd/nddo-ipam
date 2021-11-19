@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package gnmiserver
 
 import (
 	"context"
@@ -38,9 +38,7 @@ import (
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
 	"github.com/yndd/nddo-ipam/internal/dispatcher"
-	"github.com/yndd/nddo-ipam/internal/ipamlogic"
 	"github.com/yndd/nddo-ipam/internal/kapi"
-	"github.com/yndd/nddo-ipam/internal/yangschema"
 )
 
 const (
@@ -51,7 +49,7 @@ const (
 
 type Config struct {
 	// Address
-	GrpcServerAddress string
+	Address string
 	// Generic
 	MaxSubscriptions int64
 	MaxUnaryRPC      int64
@@ -67,48 +65,60 @@ type Config struct {
 }
 
 // Option can be used to manipulate Options.
-type ServerOption func(*Server)
+type Option func(*Server)
 
 // WithLogger specifies how the Reconciler should log messages.
-func WithServerLogger(log logging.Logger) ServerOption {
+func WithLogger(log logging.Logger) Option {
 	return func(s *Server) {
 		s.log = log
 	}
 }
 
-func WithServerConfig(cfg Config) ServerOption {
+func WithConfig(cfg Config) Option {
 	return func(s *Server) {
 		s.cfg = cfg
 	}
 }
 
-func WithParser(log logging.Logger) ServerOption {
-	return func(s *Server) {
-		s.parser = ynddparser.NewParser(ynddparser.WithLogger(log))
-	}
-}
-
-func WithKapi(a *kapi.Kapi) ServerOption {
+func WithKapi(a *kapi.Kapi) Option {
 	return func(s *Server) {
 		s.client = a
 	}
 }
 
-func WithEventChannels(e map[string]chan event.GenericEvent) ServerOption {
+func WithEventChannels(e map[string]chan event.GenericEvent) Option {
 	return func(s *Server) {
 		s.EventChannels = e
 	}
 }
 
-func WithConfigCache(c *cache.Cache) ServerOption {
+func WithConfigCache(c *cache.Cache) Option {
 	return func(s *Server) {
 		s.configCache = c
 	}
 }
 
-func WithStateCache(c *cache.Cache) ServerOption {
+func WithStateCache(c *cache.Cache) Option {
 	return func(s *Server) {
 		s.stateCache = c
+	}
+}
+
+func WithRootSchema(c *yentry.Entry) Option {
+	return func(s *Server) {
+		s.rootSchema = c
+	}
+}
+
+func WithRootResource(c dispatcher.Handler) Option {
+	return func(s *Server) {
+		s.rootResource = c
+	}
+}
+
+func WithDispatcher(c *dispatcher.Dispatcher) Option {
+	return func(s *Server) {
+		s.dispatcher = c
 	}
 }
 
@@ -121,8 +131,8 @@ type Server struct {
 	EventChannels map[string]chan event.GenericEvent
 
 	// router
-	root       dispatcher.Handler
-	dispatcher *dispatcher.Dispatcher
+	rootResource dispatcher.Handler
+	dispatcher   *dispatcher.Dispatcher
 	// rootSchema
 	rootSchema *yentry.Entry
 	// schema
@@ -143,40 +153,13 @@ type Server struct {
 	ctx context.Context
 }
 
-func NewServer(opts ...ServerOption) (*Server, error) {
+func New(opts ...Option) (*Server, error) {
 	s := &Server{
 		m: match.New(),
 	}
 
 	for _, opt := range opts {
 		opt(s)
-	}
-
-	s.configCache = cache.New(
-		[]string{ipam.GnmiTarget},
-		cache.WithLogging(s.log))
-
-	s.stateCache = cache.New(
-		[]string{ipam.GnmiTarget},
-		cache.WithLogging(s.log))
-
-	s.rootSchema = yangschema.InitRoot(nil, yentry.WithLogging(s.log))
-
-	// initialize the dispatcher
-	s.dispatcher = dispatcher.New()
-	// initialies the registered resource in the dtree
-	s.dispatcher.Init()
-
-	// intialize the root handler
-	var err error
-	s.root = ipamlogic.NewRoot(
-		dispatcher.WithLogging(s.log),
-		dispatcher.WithConfigCache(s.configCache),
-		dispatcher.WithStateCache(s.stateCache),
-		dispatcher.WithRootSchema(s.rootSchema),
-	)
-	if err != nil {
-		return nil, err
 	}
 
 	// set cache event handlers
@@ -206,7 +189,7 @@ func (s *Server) GetRootSchema() *yentry.Entry {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	log := s.log.WithValues("grpcServerAddress", s.cfg.GrpcServerAddress)
+	log := s.log.WithValues("grpcServerAddress", s.cfg.Address)
 	log.Debug("grpc server run...")
 	errChannel := make(chan error)
 	go func() {
@@ -222,11 +205,11 @@ func (s *Server) Run(ctx context.Context) error {
 func (s *Server) Start() error {
 	s.subscribeRPCsem = semaphore.NewWeighted(defaultMaxSubscriptions)
 	s.unaryRPCsem = semaphore.NewWeighted(defaultMaxGetRPC)
-	log := s.log.WithValues("grpcServerAddress", s.cfg.GrpcServerAddress)
+	log := s.log.WithValues("grpcServerAddress", s.cfg.Address)
 	log.Debug("grpc server start...")
 
 	// create a listener on a specific address:port
-	l, err := net.Listen("tcp", s.cfg.GrpcServerAddress)
+	l, err := net.Listen("tcp", s.cfg.Address)
 	if err != nil {
 		return errors.Wrap(err, errCreateTcpListener)
 	}

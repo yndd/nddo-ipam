@@ -1,4 +1,4 @@
-package ipamlogic
+package applogic
 
 import (
 	"encoding/json"
@@ -24,45 +24,45 @@ func init() {
 				{Name: "ipam"},
 				{Name: "tenant", Key: map[string]string{"name": "*"}},
 				{Name: "network-instance", Key: map[string]string{"name": "*"}},
-				{Name: "ip-range", Key: map[string]string{"range": "*"}},
+				{Name: "ip-prefix", Key: map[string]string{"prefix": "*"}},
 			},
 			Handler: networkinstanceCreate,
 		},
 	})
 }
 
-type iprange struct {
+type ipprefix struct {
 	dispatcher.Resource
-	data   *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpRange
+	data   *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpPrefix
 	parent *networkinstance
 }
 
-func (r *iprange) WithLogging(log logging.Logger) {
+func (r *ipprefix) WithLogging(log logging.Logger) {
 	r.Log = log
 }
 
-func (r *iprange) WithStateCache(c *cache.Cache) {
+func (r *ipprefix) WithStateCache(c *cache.Cache) {
 	r.StateCache = c
 }
 
-func (r *iprange) WithConfigCache(c *cache.Cache) {
+func (r *ipprefix) WithConfigCache(c *cache.Cache) {
 	r.ConfigCache = c
 }
 
-func (r *iprange) WithPrefix(p *gnmi.Path) {
+func (r *ipprefix) WithPrefix(p *gnmi.Path) {
 	r.Prefix = p
 }
 
-func (r *iprange) WithPathElem(pe []*gnmi.PathElem) {
+func (r *ipprefix) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-func (r *iprange) WithRootSchema(rs *yentry.Entry) {
+func (r *ipprefix) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewIpRange(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
-	x := &iprange{}
+func NewIpPrefix(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+	x := &ipprefix{}
 	x.Key = n
 
 	for _, opt := range opts {
@@ -71,13 +71,13 @@ func NewIpRange(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
 	return x
 }
 
-func iprangeGetKey(pe []*gnmi.PathElem) string {
-	return pe[0].GetKey()["start"] + "." + pe[0].GetKey()["end"]
+func ipprefixGetKey(pe []*gnmi.PathElem) string {
+	return pe[0].GetKey()["ip-prefix"]
 }
 
-func iprangeCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
-	niName := iprangeGetKey(pe)
-	return NewIpRange(niName,
+func ipprefixCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
+	niName := ipprefixGetKey(pe)
+	return NewIpPrefix(niName,
 		dispatcher.WithPrefix(prefix),
 		dispatcher.WithPathElem(pe),
 		dispatcher.WithLogging(log),
@@ -85,27 +85,27 @@ func iprangeCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, p
 		dispatcher.WithConfigCache(cc))
 }
 
-func (r *iprange) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
+func (r *ipprefix) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
 	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
-	log.Debug("iprange Handle")
+	log.Debug("ipprefix Handle")
 
 	if len(pe) == 1 {
 		return nil, errors.New("the handle should have been terminated in the parent")
 	} else {
-		return nil, errors.New("there is no children in the iprange resource ")
+		return nil, errors.New("there is no children in the ipprefix resource ")
 	}
 }
 
-func (r *iprange) UpdateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	return nil, errors.New("there is no children in the iprange resource ")
+func (r *ipprefix) UpdateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
+	return nil, errors.New("there is no children in the ipprefix resource ")
 }
 
-func (r *iprange) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
-	return errors.New("there is no children in the iprange resource ")
+func (r *ipprefix) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
+	return errors.New("there is no children in the ipprefix resource ")
 }
 
-func (r *iprange) SetParent(parent interface{}) error {
+func (r *ipprefix) SetParent(parent interface{}) error {
 	p, ok := parent.(*networkinstance)
 	if !ok {
 		return errors.New("wrong parent object")
@@ -114,27 +114,26 @@ func (r *iprange) SetParent(parent interface{}) error {
 	return nil
 }
 
-func (r *iprange) SetRootSchema(rs *yentry.Entry) {
+func (r *ipprefix) SetRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func (r *iprange) GetChildren() map[string]string {
+func (r *ipprefix) GetChildren() map[string]string {
 	var x map[string]string
 	return x
 }
 
-func (r *iprange) UpdateConfig(d interface{}) error {
+func (r *ipprefix) UpdateConfig(d interface{}) error {
 	r.Copy(d)
 
 	// TBD
-
 	if err := r.UpdateStateCache(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *iprange) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
+func (r *ipprefix) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
 	if r.parent != nil {
 		p, err := r.parent.GetPathElem(p, true)
 		if err != nil {
@@ -147,21 +146,21 @@ func (r *iprange) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.Pa
 }
 
 /*
-func (r *iprange) UpdateStateCache() error {
+func (r *ipprefix) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
 	}
-	r.Log.Debug("iprange Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	r.Log.Debug("ipprefix Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
 	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.Log.Debug("iprange Update Error")
+		r.Log.Debug("ipprefix Update Error")
 		return err
 	}
-	r.Log.Debug("iprange Update ok")
+	r.Log.Debug("ipprefix Update ok")
 	return nil
 }
 
-func (r *iprange) DeleteStateCache() error {
+func (r *ipprefix) DeleteStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
@@ -173,12 +172,12 @@ func (r *iprange) DeleteStateCache() error {
 }
 */
 
-func (r *iprange) Copy(d interface{}) error {
+func (r *ipprefix) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
 	if err != nil {
 		return err
 	}
-	x := ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpRange{}
+	x := ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpPrefix{}
 	if err := json.Unmarshal(b, &x); err != nil {
 		return err
 	}
@@ -186,7 +185,7 @@ func (r *iprange) Copy(d interface{}) error {
 	return nil
 }
 
-func (r *iprange) UpdateStateCache() error {
+func (r *ipprefix) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
@@ -222,7 +221,7 @@ func (r *iprange) UpdateStateCache() error {
 	return nil
 }
 
-func (r *iprange) DeleteStateCache() error {
+func (r *ipprefix) DeleteStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err

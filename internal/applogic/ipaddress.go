@@ -1,4 +1,4 @@
-package ipamlogic
+package applogic
 
 import (
 	"encoding/json"
@@ -24,45 +24,45 @@ func init() {
 				{Name: "ipam"},
 				{Name: "tenant", Key: map[string]string{"name": "*"}},
 				{Name: "network-instance", Key: map[string]string{"name": "*"}},
-				{Name: "ip-prefix", Key: map[string]string{"prefix": "*"}},
+				{Name: "ip-address", Key: map[string]string{"address": "*"}},
 			},
 			Handler: networkinstanceCreate,
 		},
 	})
 }
 
-type ipprefix struct {
+type ipaddress struct {
 	dispatcher.Resource
-	data   *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpPrefix
+	data   *ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpAddress
 	parent *networkinstance
 }
 
-func (r *ipprefix) WithLogging(log logging.Logger) {
+func (r *ipaddress) WithLogging(log logging.Logger) {
 	r.Log = log
 }
 
-func (r *ipprefix) WithStateCache(c *cache.Cache) {
+func (r *ipaddress) WithStateCache(c *cache.Cache) {
 	r.StateCache = c
 }
 
-func (r *ipprefix) WithConfigCache(c *cache.Cache) {
+func (r *ipaddress) WithConfigCache(c *cache.Cache) {
 	r.ConfigCache = c
 }
 
-func (r *ipprefix) WithPrefix(p *gnmi.Path) {
+func (r *ipaddress) WithPrefix(p *gnmi.Path) {
 	r.Prefix = p
 }
 
-func (r *ipprefix) WithPathElem(pe []*gnmi.PathElem) {
+func (r *ipaddress) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-func (r *ipprefix) WithRootSchema(rs *yentry.Entry) {
+func (r *ipaddress) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewIpPrefix(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
-	x := &ipprefix{}
+func NewIpAddress(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+	x := &ipaddress{}
 	x.Key = n
 
 	for _, opt := range opts {
@@ -71,13 +71,13 @@ func NewIpPrefix(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler 
 	return x
 }
 
-func ipprefixGetKey(pe []*gnmi.PathElem) string {
-	return pe[0].GetKey()["ip-prefix"]
+func ipaddressGetKey(pe []*gnmi.PathElem) string {
+	return pe[0].GetKey()["ip-address"]
 }
 
-func ipprefixCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
-	niName := ipprefixGetKey(pe)
-	return NewIpPrefix(niName,
+func ipaddressCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
+	n := ipaddressGetKey(pe)
+	return NewIpAddress(n,
 		dispatcher.WithPrefix(prefix),
 		dispatcher.WithPathElem(pe),
 		dispatcher.WithLogging(log),
@@ -85,27 +85,27 @@ func ipprefixCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, 
 		dispatcher.WithConfigCache(cc))
 }
 
-func (r *ipprefix) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
+func (r *ipaddress) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
 	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
-	log.Debug("ipprefix Handle")
+	log.Debug("ipaddress Handle")
 
 	if len(pe) == 1 {
 		return nil, errors.New("the handle should have been terminated in the parent")
 	} else {
-		return nil, errors.New("there is no children in the ipprefix resource ")
+		return nil, errors.New("there is no children in the ipaddress resource ")
 	}
 }
 
-func (r *ipprefix) UpdateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
-	return nil, errors.New("there is no children in the ipprefix resource ")
+func (r *ipaddress) UpdateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
+	return nil, errors.New("there is no children in the ipaddress resource ")
 }
 
-func (r *ipprefix) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
-	return errors.New("there is no children in the ipprefix resource ")
+func (r *ipaddress) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
+	return errors.New("there is no children in the ipaddress resource ")
 }
 
-func (r *ipprefix) SetParent(parent interface{}) error {
+func (r *ipaddress) SetParent(parent interface{}) error {
 	p, ok := parent.(*networkinstance)
 	if !ok {
 		return errors.New("wrong parent object")
@@ -114,26 +114,27 @@ func (r *ipprefix) SetParent(parent interface{}) error {
 	return nil
 }
 
-func (r *ipprefix) SetRootSchema(rs *yentry.Entry) {
+func (r *ipaddress) SetRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func (r *ipprefix) GetChildren() map[string]string {
+func (r *ipaddress) GetChildren() map[string]string {
 	var x map[string]string
 	return x
 }
 
-func (r *ipprefix) UpdateConfig(d interface{}) error {
+func (r *ipaddress) UpdateConfig(d interface{}) error {
 	r.Copy(d)
 
 	// TBD
+
 	if err := r.UpdateStateCache(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *ipprefix) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
+func (r *ipaddress) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
 	if r.parent != nil {
 		p, err := r.parent.GetPathElem(p, true)
 		if err != nil {
@@ -146,21 +147,23 @@ func (r *ipprefix) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.P
 }
 
 /*
-func (r *ipprefix) UpdateStateCache() error {
+func (r *ipaddress) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
 	}
-	r.Log.Debug("ipprefix Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	r.Log.Debug("ipaddress Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
 	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.Log.Debug("ipprefix Update Error")
+		r.Log.Debug("ipaddress Update Error")
 		return err
 	}
-	r.Log.Debug("ipprefix Update ok")
+	r.Log.Debug("ipaddress Update ok")
 	return nil
 }
+*/
 
-func (r *ipprefix) DeleteStateCache() error {
+/*
+func (r *ipaddress) DeleteStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
@@ -172,12 +175,12 @@ func (r *ipprefix) DeleteStateCache() error {
 }
 */
 
-func (r *ipprefix) Copy(d interface{}) error {
+func (r *ipaddress) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
 	if err != nil {
 		return err
 	}
-	x := ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpPrefix{}
+	x := ipamv1alpha1.NddoipamIpamTenantNetworkInstanceIpAddress{}
 	if err := json.Unmarshal(b, &x); err != nil {
 		return err
 	}
@@ -185,7 +188,7 @@ func (r *ipprefix) Copy(d interface{}) error {
 	return nil
 }
 
-func (r *ipprefix) UpdateStateCache() error {
+func (r *ipaddress) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
@@ -221,7 +224,7 @@ func (r *ipprefix) UpdateStateCache() error {
 	return nil
 }
 
-func (r *ipprefix) DeleteStateCache() error {
+func (r *ipaddress) DeleteStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package ipamlogic
+package applogic
 
 import (
 	"encoding/json"
@@ -18,57 +18,62 @@ import (
 )
 
 func init() {
-	dispatcher.Register("network-instance", []*dispatcher.EventHandler{
+	dispatcher.Register("tenant", []*dispatcher.EventHandler{
 		{
 			Kind: dispatcher.EventHandlerCreate,
 			PathElem: []*gnmi.PathElem{
 				{Name: "ipam"},
 				{Name: "tenant", Key: map[string]string{"name": "*"}},
-				{Name: "network-instance", Key: map[string]string{"name": "*"}},
 			},
-			Handler: networkinstanceCreate,
+			Handler: tenantCreate,
 		},
 	})
 }
 
-type networkinstance struct {
+//type Tenant interface {
+//	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
+//}
+
+type tenant struct {
 	dispatcher.Resource
-	data        *ipamv1alpha1.NddoipamIpamTenantNetworkInstance
-	parent      *tenant
-	ipprefixes  map[string]dispatcher.Handler
-	ipranges    map[string]dispatcher.Handler
-	ipaddresses map[string]dispatcher.Handler
+	//log         logging.Logger
+	//configCache *cache.Cache
+	//stateCache  *cache.Cache
+	//pathElem    *gnmi.PathElem
+	//prefix      *gnmi.Path
+	//key         string
+	data             *ipamv1alpha1.NddoipamIpamTenant
+	parent           *ipam
+	networkInstances map[string]dispatcher.Handler
 }
 
-func (r *networkinstance) WithLogging(log logging.Logger) {
+func (r *tenant) WithLogging(log logging.Logger) {
 	r.Log = log
 }
 
-func (r *networkinstance) WithStateCache(c *cache.Cache) {
+func (r *tenant) WithStateCache(c *cache.Cache) {
 	r.StateCache = c
 }
 
-func (r *networkinstance) WithConfigCache(c *cache.Cache) {
+func (r *tenant) WithConfigCache(c *cache.Cache) {
 	r.ConfigCache = c
 }
 
-func (r *networkinstance) WithPrefix(p *gnmi.Path) {
+func (r *tenant) WithPrefix(p *gnmi.Path) {
 	r.Prefix = p
 }
 
-func (r *networkinstance) WithPathElem(pe []*gnmi.PathElem) {
+func (r *tenant) WithPathElem(pe []*gnmi.PathElem) {
 	r.PathElem = pe[0]
 }
 
-func (r *networkinstance) WithRootSchema(rs *yentry.Entry) {
+func (r *tenant) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewNetworkInstance(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
-	x := &networkinstance{
-		ipprefixes:  make(map[string]dispatcher.Handler),
-		ipranges:    make(map[string]dispatcher.Handler),
-		ipaddresses: make(map[string]dispatcher.Handler),
+func NewTenant(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+	x := &tenant{
+		networkInstances: make(map[string]dispatcher.Handler),
 	}
 	x.Key = n
 
@@ -78,13 +83,13 @@ func NewNetworkInstance(n string, opts ...dispatcher.HandlerOption) dispatcher.H
 	return x
 }
 
-func networkinstanceGetKey(pe []*gnmi.PathElem) string {
+func tenantGetKey(pe []*gnmi.PathElem) string {
 	return pe[0].GetKey()["name"]
 }
 
-func networkinstanceCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
-	networkinstanceName := networkinstanceGetKey(pe)
-	return NewNetworkInstance(networkinstanceName,
+func tenantCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) dispatcher.Handler {
+	tenantName := tenantGetKey(pe)
+	return NewTenant(tenantName,
 		dispatcher.WithPrefix(prefix),
 		dispatcher.WithPathElem(pe),
 		dispatcher.WithLogging(log),
@@ -92,15 +97,13 @@ func networkinstanceCreate(log logging.Logger, cc, sc *cache.Cache, prefix *gnmi
 		dispatcher.WithConfigCache(cc))
 }
 
-func (r *networkinstance) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
+func (r *tenant) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
 	log := r.Log.WithValues("Operation", o, "Path Elem", pe)
 
-	log.Debug("networkinstance HandleConfigEvent")
+	log.Debug("tenant HandleConfigEvent")
 
 	children := map[string]dispatcher.HandleConfigEventFunc{
-		"ip-prefix":  ipprefixCreate,
-		"ip-range":   iprangeCreate,
-		"ip-address": ipaddressCreate,
+		"network-instance": networkinstanceCreate,
 	}
 
 	// check path Element Name
@@ -144,40 +147,16 @@ func (r *networkinstance) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi
 	return nil, nil
 }
 
-func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
+func (r *tenant) CreateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
 	switch pathElemName {
-	case "ip-prefix":
-		if i, ok := r.ipprefixes[ipprefixGetKey(pe)]; !ok {
+	case "network-instance":
+		if i, ok := r.networkInstances[rirGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
-			r.ipprefixes[ipprefixGetKey(pe)] = i
-			return i, nil
-		} else {
-			return i, nil
-		}
-	case "ip-range":
-		if i, ok := r.ipranges[iprangeGetKey(pe)]; !ok {
-			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
-			i.SetRootSchema(r.RootSchema)
-			if err := i.SetParent(r); err != nil {
-				return nil, err
-			}
-			r.ipranges[iprangeGetKey(pe)] = i
-			return i, nil
-		} else {
-			return i, nil
-		}
-	case "ip-address":
-		if i, ok := r.ipaddresses[ipaddressGetKey(pe)]; !ok {
-			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
-			i.SetRootSchema(r.RootSchema)
-			if err := i.SetParent(r); err != nil {
-				return nil, err
-			}
-			r.ipaddresses[ipaddressGetKey(pe)] = i
+			r.networkInstances[rirGetKey(pe)] = i
 			return i, nil
 		} else {
 			return i, nil
@@ -186,22 +165,10 @@ func (r *networkinstance) CreateChild(children map[string]dispatcher.HandleConfi
 	return nil, nil
 }
 
-func (r *networkinstance) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
+func (r *tenant) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
 	switch pathElemName {
-	case "ip-prefix":
-		if i, ok := r.ipprefixes[ipprefixGetKey(pe)]; ok {
-			if err := i.DeleteStateCache(); err != nil {
-				return err
-			}
-		}
-	case "ip-range":
-		if i, ok := r.ipranges[iprangeGetKey(pe)]; ok {
-			if err := i.DeleteStateCache(); err != nil {
-				return err
-			}
-		}
-	case "ip-address":
-		if i, ok := r.ipaddresses[ipaddressGetKey(pe)]; ok {
+	case "network-instance":
+		if i, ok := r.networkInstances[networkinstanceGetKey(pe)]; ok {
 			if err := i.DeleteStateCache(); err != nil {
 				return err
 			}
@@ -210,8 +177,8 @@ func (r *networkinstance) DeleteChild(pathElemName string, pe []*gnmi.PathElem) 
 	return nil
 }
 
-func (r *networkinstance) SetParent(parent interface{}) error {
-	p, ok := parent.(*tenant)
+func (r *tenant) SetParent(parent interface{}) error {
+	p, ok := parent.(*ipam)
 	if !ok {
 		return errors.New("wrong parent object")
 	}
@@ -219,37 +186,26 @@ func (r *networkinstance) SetParent(parent interface{}) error {
 	return nil
 }
 
-func (r *networkinstance) SetRootSchema(rs *yentry.Entry) {
+func (r *tenant) SetRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func (r *networkinstance) GetChildren() map[string]string {
+func (r *tenant) GetChildren() map[string]string {
 	x := make(map[string]string)
-	for k := range r.ipprefixes {
-		x[k] = "ip-prefix"
-	}
-	for k := range r.ipranges {
-		x[k] = "ip-range"
-	}
-	for k := range r.ipaddresses {
-		x[k] = "ip-address"
+	for k := range r.networkInstances {
+		x[k] = "network-instance"
 	}
 	return x
 }
 
-func (r *networkinstance) UpdateConfig(d interface{}) error {
+func (r *tenant) UpdateConfig(d interface{}) error {
 	r.Copy(d)
-	if r.parent.data.GetStatus() == "down" {
+	if r.data.GetAdminState() == "disable" {
 		r.data.SetStatus("down")
-		r.data.SetReason("parent status disabled")
+		r.data.SetReason("admin disabled")
 	} else {
-		if r.data.GetAdminState() == "down" {
-			r.data.SetStatus("down")
-			r.data.SetReason("admin disable")
-		} else {
-			r.data.SetStatus("up")
-			r.data.SetReason("")
-		}
+		r.data.SetStatus("up")
+		r.data.SetReason("")
 	}
 	r.data.SetLastUpdate(time.Now().String())
 	// update the state cache
@@ -259,8 +215,8 @@ func (r *networkinstance) UpdateConfig(d interface{}) error {
 	return nil
 }
 
-func (r *networkinstance) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
-	r.Log.Debug("GetPathElem", "PathElem networkinstance", r.PathElem)
+func (r *tenant) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
+	r.Log.Debug("GetPathElem", "PathElem tenant", r.PathElem)
 	if r.parent != nil {
 		p, err := r.parent.GetPathElem(p, true)
 		if err != nil {
@@ -273,21 +229,21 @@ func (r *networkinstance) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]
 }
 
 /*
-func (r *networkinstance) UpdateStateCache() error {
+func (r *tenant) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
 	}
-	r.Log.Debug("NetworkInstance Update Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
+	r.Log.Debug("Tenant Update State Cache", "PathElem", pe, "Prefix", r.Prefix, "data", r.data)
 	if err := updateCache(r.Log, r.StateCache, r.Prefix, &gnmi.Path{Elem: pe}, r.data); err != nil {
-		r.Log.Debug("NetworkInstance Update Error")
+		r.Log.Debug("Tenant Update State Cache Error")
 		return err
 	}
-	r.Log.Debug("NetworkInstance Update ok")
+	r.Log.Debug("Tenant Update State Cache ok")
 	return nil
 }
 
-func (r *networkinstance) DeleteStateCache() error {
+func (r *tenant) DeleteStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
@@ -299,12 +255,12 @@ func (r *networkinstance) DeleteStateCache() error {
 }
 */
 
-func (r *networkinstance) Copy(d interface{}) error {
+func (r *tenant) Copy(d interface{}) error {
 	b, err := json.Marshal(d)
 	if err != nil {
 		return err
 	}
-	x := ipamv1alpha1.NddoipamIpamTenantNetworkInstance{}
+	x := ipamv1alpha1.NddoipamIpamTenant{}
 	if err := json.Unmarshal(b, &x); err != nil {
 		return err
 	}
@@ -312,7 +268,7 @@ func (r *networkinstance) Copy(d interface{}) error {
 	return nil
 }
 
-func (r *networkinstance) UpdateStateCache() error {
+func (r *tenant) UpdateStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err
@@ -348,7 +304,7 @@ func (r *networkinstance) UpdateStateCache() error {
 	return nil
 }
 
-func (r *networkinstance) DeleteStateCache() error {
+func (r *tenant) DeleteStateCache() error {
 	pe, err := r.GetPathElem(nil, true)
 	if err != nil {
 		return err

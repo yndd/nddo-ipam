@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package gnmiserver
 
 import (
 	"context"
@@ -129,6 +129,25 @@ func (s *Server) HandleGet(cacheType string, prefix *gnmi.Path, reqPaths []*gnmi
 	return updates, nil
 }
 
+func appendUpdateResponse(data interface{}, path *gnmi.Path, updates []*gnmi.Update) ([]*gnmi.Update, error) {
+	var err error
+	var d []byte
+	if data != nil {
+		d, err = json.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	upd := &gnmi.Update{
+		Path: path,
+		Val:  &gnmi.TypedValue{Value: &gnmi.TypedValue_JsonVal{JsonVal: d}},
+	}
+	updates = append(updates, upd)
+	return updates, nil
+}
+
+/*
 // prepareResponseData prepare the response data aligned with the controller
 // 1. the hierarchical elements within the resource should be removed
 // 2. add the last element of the path back to the return data
@@ -178,21 +197,4 @@ func deleteHierarchicalElements(x map[string]interface{}, he map[string]interfac
 	}
 	return x
 }
-
-func appendUpdateResponse(data interface{}, path *gnmi.Path, updates []*gnmi.Update) ([]*gnmi.Update, error) {
-	var err error
-	var d []byte
-	if data != nil {
-		d, err = json.Marshal(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	upd := &gnmi.Update{
-		Path: path,
-		Val:  &gnmi.TypedValue{Value: &gnmi.TypedValue_JsonVal{JsonVal: d}},
-	}
-	updates = append(updates, upd)
-	return updates, nil
-}
+*/

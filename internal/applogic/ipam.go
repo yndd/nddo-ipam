@@ -1,4 +1,4 @@
-package ipamlogic
+package applogic
 
 import (
 	"encoding/json"

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package gnmiserver
 
 import (
 	"context"
@@ -102,7 +102,7 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 
 		// Delete the resources in the application logic as a single transaction
 		for _, path := range deleteObjects {
-			if _, err := s.root.HandleConfigEvent(dispatcher.OperationDelete, prefix, path.GetElem(), nil); err != nil {
+			if _, err := s.rootResource.HandleConfigEvent(dispatcher.OperationDelete, prefix, path.GetElem(), nil); err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
 			}
 		}
@@ -116,7 +116,7 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 			return nil, err
 		}
 
-		if _, err := s.root.HandleConfigEvent(dispatcher.OperationUpdate, prefix, path.GetElem(), d); err != nil {
+		if _, err := s.rootResource.HandleConfigEvent(dispatcher.OperationUpdate, prefix, path.GetElem(), d); err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
 		}
 	}

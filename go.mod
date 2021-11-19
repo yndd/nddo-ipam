@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
+	github.com/gorilla/mux v1.8.0
 	github.com/k-sone/critbitgo v1.4.0
 	github.com/karimra/gnmic v0.19.0
 	github.com/mikioh/ipaddr v0.0.0-20190404000644-d465c8ab6721

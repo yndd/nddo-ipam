@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
+	"github.com/yndd/ndd-yang/pkg/cache"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -36,9 +37,13 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-runtime/pkg/ratelimiter"
 
+	"github.com/yndd/nddo-ipam/internal/applogic"
 	"github.com/yndd/nddo-ipam/internal/controllers"
+	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
+	"github.com/yndd/nddo-ipam/internal/dispatcher"
+	"github.com/yndd/nddo-ipam/internal/gnmiserver"
 	"github.com/yndd/nddo-ipam/internal/kapi"
-	"github.com/yndd/nddo-ipam/internal/server"
+	"github.com/yndd/nddo-ipam/internal/restconf"
 	"github.com/yndd/nddo-ipam/internal/yangschema"
 	//+kubebuilder:scaffold:imports
 )
@@ -81,7 +86,29 @@ var startCmd = &cobra.Command{
 			return errors.Wrap(err, "Cannot create manager")
 		}
 
+		// initialize the config and state caches
+		configCache := cache.New(
+			[]string{ipam.GnmiTarget},
+			cache.WithLogging(logging.NewLogrLogger(zlog.WithName("configcache"))))
+
+		stateCache := cache.New(
+			[]string{ipam.GnmiTarget},
+			cache.WithLogging(logging.NewLogrLogger(zlog.WithName("statecache"))))
+
+		// initialize the root schema
 		rootSchema := yangschema.InitRoot(nil, yentry.WithLogging(logging.NewLogrLogger(zlog.WithName("yangschema"))))
+
+		// initialize the dispatcher
+		d := dispatcher.New()
+		// initialies the registered resource in the dtree
+		d.Init()
+		// intialize the root handler
+		rootResource := applogic.NewRoot(
+			dispatcher.WithLogging(logging.NewLogrLogger(zlog.WithName("yresource"))),
+			dispatcher.WithConfigCache(configCache),
+			dispatcher.WithStateCache(stateCache),
+			dispatcher.WithRootSchema(rootSchema),
+		)
 
 		// initialize controllers
 		eventChans, err := controllers.Setup(mgr, nddCtlrOptions(concurrency), logging.NewLogrLogger(zlog.WithName("ipam")), pollInterval, namespace, rootSchema)
@@ -98,34 +125,58 @@ var startCmd = &cobra.Command{
 			return errors.Wrap(err, "Cannot create kubernetes client")
 		}
 
-		zlog.Info("Address", "grpcServerAddress", grpcServerAddress)
-		s, err := server.NewServer(
-			server.WithKapi(a),
-			server.WithEventChannels(eventChans),
-			server.WithServerLogger(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
-			//server.WithStateCache(stateCache),
-			//server.WithConfigCache(configcache),
-			server.WithServerConfig(
-				server.Config{
-					GrpcServerAddress: ":" + strconv.Itoa(pkgmetav1.GnmiServerPort),
-					SkipVerify:        true,
-					InSecure:          true,
+		// create and start restconf server
+		rcs, err := restconf.New(
+			restconf.WithLogger(logging.NewLogrLogger(zlog.WithName("restconfserver"))),
+			restconf.WithStateCache(stateCache),
+			restconf.WithConfigCache(configCache),
+			restconf.WithRootResource(rootResource),
+			restconf.WithRootSchema(rootSchema),
+			restconf.WithDispatcher(d),
+			restconf.WithConfig(
+				restconf.Config{
+					Address: ":" + "9998",
 				},
 			),
-			server.WithParser(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
+		)
+		if err != nil {
+			return errors.Wrap(err, "unable to initialize server")
+		}
+		if err := rcs.Run(context.Background()); err != nil {
+			return errors.Wrap(err, "unable to start restconf server")
+		}
+
+		// create and start gnmi server
+		gs, err := gnmiserver.New(
+			gnmiserver.WithKapi(a),
+			gnmiserver.WithEventChannels(eventChans),
+			gnmiserver.WithLogger(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
+			gnmiserver.WithStateCache(stateCache),
+			gnmiserver.WithConfigCache(configCache),
+			gnmiserver.WithRootResource(rootResource),
+			gnmiserver.WithRootSchema(rootSchema),
+			gnmiserver.WithDispatcher(d),
+			gnmiserver.WithConfig(
+				gnmiserver.Config{
+					Address:    ":" + strconv.Itoa(pkgmetav1.GnmiServerPort),
+					SkipVerify: true,
+					InSecure:   true,
+				},
+			),
+			//gnmiserver.WithParser(logging.NewLogrLogger(zlog.WithName("grpcserver"))),
 			//server.WithConnecter(intentlogic.New(logging.NewLogrLogger(zlog.WithName("grpcserver")))),
 		)
 		if err != nil {
 			return errors.Wrap(err, "unable to initialize server")
 		}
 
-		state, err := s.GetState()
+		state, err := gs.GetState()
 		if err != nil {
 			return errors.Wrap(err, "unable to get state from cache")
 		}
 		zlog.Info("New Server", "State", state)
 
-		if err := s.Run(context.Background()); err != nil {
+		if err := gs.Run(context.Background()); err != nil {
 			return errors.Wrap(err, "unable to start grpc server")
 		}
 
