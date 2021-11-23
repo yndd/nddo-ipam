@@ -58,5 +58,8 @@ func initIpamTenantNetworkInstanceIpAddressIpRange(p *yentry.Entry, opts ...yent
 	for name, initFunc := range children {
 		e.Children[name] = initFunc(e, yentry.WithLogging(e.Log))
 	}
+	if e.ResourceBoundary {
+		e.Register(&gnmi.Path{Elem: []*gnmi.PathElem{}})
+	}
 	return e
 }

@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
 type root struct {
@@ -45,7 +45,7 @@ func (r *root) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewRoot(opts ...dispatcher.HandlerOption) dispatcher.Handler {
+func NewRoot(opts ...dispatcher.Option) dispatcher.Handler {
 	r := &root{
 		ipams: make(map[string]dispatcher.Handler),
 	}
@@ -81,6 +81,7 @@ func (r *root) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe [
 			if err != nil {
 				return nil, err
 			}
+			r.Log.Debug("Ipam update", "data", d)
 			if d != nil {
 				if err := i.UpdateConfig(d); err != nil {
 					return nil, err

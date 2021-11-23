@@ -33,10 +33,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	errGetSubscribe = "cannot get subscription definition, the subscribe request must contain a subscription definition"
-)
-
 type syncMarker struct{}
 
 type streamClient struct {

@@ -10,12 +10,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
+	"inet.af/netaddr"
 )
 
+/*
 func init() {
 	dispatcher.Register("network-instance", []*dispatcher.EventHandler{
 		{
@@ -30,6 +32,7 @@ func init() {
 		},
 	})
 }
+*/
 
 type iprange struct {
 	dispatcher.Resource
@@ -61,7 +64,7 @@ func (r *iprange) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewIpRange(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+func NewIpRange(n string, opts ...dispatcher.Option) dispatcher.Handler {
 	x := &iprange{}
 	x.Key = n
 
@@ -121,17 +124,6 @@ func (r *iprange) SetRootSchema(rs *yentry.Entry) {
 func (r *iprange) GetChildren() map[string]string {
 	var x map[string]string
 	return x
-}
-
-func (r *iprange) UpdateConfig(d interface{}) error {
-	r.Copy(d)
-
-	// TBD
-
-	if err := r.UpdateStateCache(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (r *iprange) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
@@ -233,6 +225,40 @@ func (r *iprange) DeleteStateCache() error {
 		Delete:    []*gnmi.Path{{Elem: pe}},
 	}
 	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *iprange) GetTags() map[string]string {
+	tags := make(map[string]string)
+	for _, t := range r.data.Tag {
+		tags[*t.DeepCopy().Key] = *t.DeepCopy().Value
+	}
+	return tags
+}
+
+func (r *iprange) UpdateConfig(d interface{}) error {
+	r.Copy(d)
+
+	from, err := netaddr.ParseIP(*r.data.Start)
+	if err != nil {
+		return err
+	}
+
+	to, err := netaddr.ParseIP(*r.data.End)
+	if err != nil {
+		return err
+	}
+
+	if err := r.parent.AddRange(netaddr.IPRangeFrom(from, to), r.GetTags()); err != nil {
+		r.data.SetStatus("down")
+		r.data.SetReason(fmt.Sprintf("%v", err))
+	}
+
+	r.data.SetStatus("up")
+
+	if err := r.UpdateStateCache(); err != nil {
 		return err
 	}
 	return nil

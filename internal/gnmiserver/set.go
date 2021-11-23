@@ -26,8 +26,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
+	"github.com/yndd/ndd-yang/pkg/yparser"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
 func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetResponse, error) {
@@ -58,10 +59,13 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 			}
 			// handles config updates as a transaction aligned with the k8s crd controller
 			// aggregate all updates and map them to the resources in the application logic
-			//log.Debug("Replace Path", "Path", u.GetPath())
-			if pe := s.dispatcher.GetPathElem(u.GetPath()); pe != nil {
-				key, path := getPath2Process(u.GetPath(), pe)
-				//log.Debug("Replace Path", "Key", key, "path", path)
+			s.dispatcher.ShowTree()
+			p := u.GetPath()
+			log.Debug("Set Replace Path", "Path", yparser.GnmiPath2XPath(p, true))
+			if pe := s.dispatcher.GetPathElem(p); pe != nil {
+				log.Debug("Set Replace Dispatch PathElem", "PathElem", pe, "Path", yparser.GnmiPath2XPath(p, true))
+				key, path := getPath2Process(p, pe)
+				log.Debug("Set Replace Dispatch Path", "Key", key, "Path", yparser.GnmiPath2XPath(path, true))
 				if _, ok := updateObjects[key]; !ok {
 					updateObjects[key] = path
 				}
@@ -76,8 +80,11 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 			}
 			// handles config updates as a transaction aligned with the k8s crd controller
 			// aggregate all updates and map them to the resources in the application logic
-			if pe := s.dispatcher.GetPathElem(u.GetPath()); pe != nil {
-				key, path := getPath2Process(u.GetPath(), pe)
+			p := u.GetPath()
+			log.Debug("Set Update Path", "Path", yparser.GnmiPath2XPath(p, true))
+			if pe := s.dispatcher.GetPathElem(p); pe != nil {
+				key, path := getPath2Process(p, pe)
+				log.Debug("Set Update Dispatch Path", "Key", key, "path", yparser.GnmiPath2XPath(path, true))
 				if _, ok := updateObjects[key]; !ok {
 					updateObjects[key] = path
 				}
@@ -116,6 +123,7 @@ func (s *Server) Set(ctx context.Context, req *gnmi.SetRequest) (*gnmi.SetRespon
 			return nil, err
 		}
 
+		log.Debug("State Transaction", "Path", yparser.GnmiPath2XPath(path, true), "Data", d)
 		if _, err := s.rootResource.HandleConfigEvent(dispatcher.OperationUpdate, prefix, path.GetElem(), d); err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error: %v", err))
 		}

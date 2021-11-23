@@ -7,16 +7,21 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"inet.af/netaddr"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 
+	"github.com/hansthienpondt/goipam/pkg/table"
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
+/*
 func init() {
 	dispatcher.Register("network-instance", []*dispatcher.EventHandler{
 		{
@@ -30,6 +35,7 @@ func init() {
 		},
 	})
 }
+*/
 
 type networkinstance struct {
 	dispatcher.Resource
@@ -38,6 +44,7 @@ type networkinstance struct {
 	ipprefixes  map[string]dispatcher.Handler
 	ipranges    map[string]dispatcher.Handler
 	ipaddresses map[string]dispatcher.Handler
+	tree        *table.RouteTable
 }
 
 func (r *networkinstance) WithLogging(log logging.Logger) {
@@ -64,11 +71,12 @@ func (r *networkinstance) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewNetworkInstance(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+func NewNetworkInstance(n string, opts ...dispatcher.Option) dispatcher.Handler {
 	x := &networkinstance{
 		ipprefixes:  make(map[string]dispatcher.Handler),
 		ipranges:    make(map[string]dispatcher.Handler),
 		ipaddresses: make(map[string]dispatcher.Handler),
+		tree:        table.NewRouteTable(),
 	}
 	x.Key = n
 
@@ -110,7 +118,7 @@ func (r *networkinstance) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi
 	}
 
 	if len(pe) == 1 {
-		log.Debug("tenant Handle pathelem =1")
+		log.Debug("networkinstance Handle pathelem =1")
 		// handle local
 		switch o {
 		case dispatcher.OperationUpdate:
@@ -134,7 +142,7 @@ func (r *networkinstance) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi
 			return nil, nil
 		}
 	} else {
-		log.Debug("ipam Handle pathelem >1")
+		log.Debug("networkinstance Handle pathelem >1")
 		i, err := r.CreateChild(children, pathElemName, prefix, pe[:1], nil)
 		if err != nil {
 			return nil, err
@@ -235,28 +243,6 @@ func (r *networkinstance) GetChildren() map[string]string {
 		x[k] = "ip-address"
 	}
 	return x
-}
-
-func (r *networkinstance) UpdateConfig(d interface{}) error {
-	r.Copy(d)
-	if r.parent.data.GetStatus() == "down" {
-		r.data.SetStatus("down")
-		r.data.SetReason("parent status disabled")
-	} else {
-		if r.data.GetAdminState() == "down" {
-			r.data.SetStatus("down")
-			r.data.SetReason("admin disable")
-		} else {
-			r.data.SetStatus("up")
-			r.data.SetReason("")
-		}
-	}
-	r.data.SetLastUpdate(time.Now().String())
-	// update the state cache
-	if err := r.UpdateStateCache(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (r *networkinstance) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
@@ -361,5 +347,64 @@ func (r *networkinstance) DeleteStateCache() error {
 	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (r *networkinstance) UpdateConfig(d interface{}) error {
+	r.Copy(d)
+	if r.tree == nil {
+		r.tree = table.NewRouteTable()
+	}
+
+	if r.parent.data.GetStatus() == "down" {
+		r.data.SetStatus("down")
+		r.data.SetReason("parent status disabled")
+	} else {
+		if r.data.GetAdminState() == "down" {
+			r.data.SetStatus("down")
+			r.data.SetReason("admin disable")
+		} else {
+			r.data.SetStatus("up")
+			r.data.SetReason("")
+		}
+	}
+	r.data.SetLastUpdate(time.Now().String())
+	// update the state cache
+	if err := r.UpdateStateCache(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *networkinstance) GetTree() *table.RouteTable {
+	return r.tree
+}
+
+func (r *networkinstance) AddRoute(p netaddr.IPPrefix, tags map[string]string) error {
+	route := table.NewRoute(p)
+	route.UpdateLabel(tags)
+
+	if err := r.tree.Add(route); err != nil {
+		fmt.Println(err)
+	}
+	return nil
+}
+
+func (r *networkinstance) AddRange(iprange netaddr.IPRange, tags map[string]string) error {
+	if err := r.tree.AddRange(iprange); err != nil {
+		fmt.Println(err)
+	}
+	selector := labels.NewSelector()
+	req, err := labels.NewRequirement(
+		"iprange", selection.Equals, []string{iprange.String()},
+	)
+	if err != nil {
+		return err
+	}
+	routes := r.tree.GetByLabel(selector.Add(*req))
+	for _, route := range routes {
+		route.UpdateLabel(tags)
+	}
+
 	return nil
 }

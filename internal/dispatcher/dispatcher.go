@@ -1,11 +1,11 @@
-package dispatcher
+package dispatcherold
 
 import (
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
-	"github.com/yndd/nddo-ipam/internal/dtree"
+	"github.com/yndd/ndd-yang/pkg/dtree"
 )
 
 var Resources = map[string][]*EventHandler{}

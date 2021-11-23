@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/gorilla/mux v1.8.0
+	github.com/hansthienpondt/goipam v0.0.1
 	github.com/k-sone/critbitgo v1.4.0
 	github.com/karimra/gnmic v0.19.0
 	github.com/mikioh/ipaddr v0.0.0-20190404000644-d465c8ab6721
@@ -13,10 +14,11 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/yndd/ndd-core v0.1.3
 	github.com/yndd/ndd-runtime v0.1.2
-	github.com/yndd/ndd-yang v0.1.285
+	github.com/yndd/ndd-yang v0.1.301
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.39.0
-	k8s.io/apimachinery v0.22.1
+	inet.af/netaddr v0.0.0-20210903134321-85fa6c94624e
+	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.1
 	sigs.k8s.io/controller-runtime v0.9.3
 )
@@ -56,6 +58,8 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
+	go4.org/intern v0.0.0-20210108033219-3eb7198706b2 // indirect
+	go4.org/unsafe/assume-no-moving-gc v0.0.0-20201222180813-1025295fd063 // indirect
 	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f // indirect
 	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602 // indirect
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 // indirect
@@ -74,7 +78,7 @@ require (
 	k8s.io/component-base v0.22.1 // indirect
 	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
-	k8s.io/utils v0.0.0-20210820185131-d34e5cb4466e // indirect
+	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )

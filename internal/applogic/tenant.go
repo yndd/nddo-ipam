@@ -11,12 +11,13 @@ import (
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
+/*
 func init() {
 	dispatcher.Register("tenant", []*dispatcher.EventHandler{
 		{
@@ -29,6 +30,7 @@ func init() {
 		},
 	})
 }
+*/
 
 //type Tenant interface {
 //	HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error)
@@ -36,12 +38,6 @@ func init() {
 
 type tenant struct {
 	dispatcher.Resource
-	//log         logging.Logger
-	//configCache *cache.Cache
-	//stateCache  *cache.Cache
-	//pathElem    *gnmi.PathElem
-	//prefix      *gnmi.Path
-	//key         string
 	data             *ipamv1alpha1.NddoipamIpamTenant
 	parent           *ipam
 	networkInstances map[string]dispatcher.Handler
@@ -71,7 +67,7 @@ func (r *tenant) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewTenant(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+func NewTenant(n string, opts ...dispatcher.Option) dispatcher.Handler {
 	x := &tenant{
 		networkInstances: make(map[string]dispatcher.Handler),
 	}
@@ -121,6 +117,7 @@ func (r *tenant) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe
 			if err != nil {
 				return nil, err
 			}
+			r.Log.Debug("Network Instance update", "data", d)
 			if d != nil {
 				if err := i.UpdateConfig(d); err != nil {
 					return nil, err
@@ -137,7 +134,7 @@ func (r *tenant) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe
 			return nil, nil
 		}
 	} else {
-		log.Debug("ipam Handle pathelem >1")
+		log.Debug("tenant Handle pathelem >1")
 		i, err := r.CreateChild(children, pathElemName, prefix, pe[:1], nil)
 		if err != nil {
 			return nil, err
@@ -150,13 +147,14 @@ func (r *tenant) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe
 func (r *tenant) CreateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
 	switch pathElemName {
 	case "network-instance":
-		if i, ok := r.networkInstances[rirGetKey(pe)]; !ok {
+		r.Log.Debug("Tenant CreateChild", "Ni Key", networkinstanceGetKey(pe))
+		if i, ok := r.networkInstances[networkinstanceGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
 			i.SetRootSchema(r.RootSchema)
 			if err := i.SetParent(r); err != nil {
 				return nil, err
 			}
-			r.networkInstances[rirGetKey(pe)] = i
+			r.networkInstances[networkinstanceGetKey(pe)] = i
 			return i, nil
 		} else {
 			return i, nil

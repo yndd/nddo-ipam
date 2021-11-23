@@ -28,6 +28,7 @@ import (
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	"github.com/yndd/ndd-yang/pkg/cache"
 	"github.com/yndd/ndd-yang/pkg/yentry"
+	"github.com/yndd/ndd-yang/pkg/yparser"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -37,10 +38,10 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-runtime/pkg/ratelimiter"
 
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/nddo-ipam/internal/applogic"
 	"github.com/yndd/nddo-ipam/internal/controllers"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 	"github.com/yndd/nddo-ipam/internal/gnmiserver"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 	"github.com/yndd/nddo-ipam/internal/restconf"
@@ -96,12 +97,14 @@ var startCmd = &cobra.Command{
 			cache.WithLogging(logging.NewLogrLogger(zlog.WithName("statecache"))))
 
 		// initialize the root schema
-		rootSchema := yangschema.InitRoot(nil, yentry.WithLogging(logging.NewLogrLogger(zlog.WithName("yangschema"))))
+		rootSchema := yangschema.InitRoot(
+			nil,
+			yentry.WithLogging(logging.NewLogrLogger(zlog.WithName("yangschema"))))
 
-		// initialize the dispatcher
-		d := dispatcher.New()
-		// initialies the registered resource in the dtree
-		d.Init()
+		for _, path := range rootSchema.Resources {
+			zlog.Info("Resource", "Path", yparser.GnmiPath2XPath(path, true))
+		}
+
 		// intialize the root handler
 		rootResource := applogic.NewRoot(
 			dispatcher.WithLogging(logging.NewLogrLogger(zlog.WithName("yresource"))),
@@ -132,7 +135,6 @@ var startCmd = &cobra.Command{
 			restconf.WithConfigCache(configCache),
 			restconf.WithRootResource(rootResource),
 			restconf.WithRootSchema(rootSchema),
-			restconf.WithDispatcher(d),
 			restconf.WithConfig(
 				restconf.Config{
 					Address: ":" + "9998",
@@ -155,7 +157,7 @@ var startCmd = &cobra.Command{
 			gnmiserver.WithConfigCache(configCache),
 			gnmiserver.WithRootResource(rootResource),
 			gnmiserver.WithRootSchema(rootSchema),
-			gnmiserver.WithDispatcher(d),
+			gnmiserver.WithResources(rootSchema.Resources),
 			gnmiserver.WithConfig(
 				gnmiserver.Config{
 					Address:    ":" + strconv.Itoa(pkgmetav1.GnmiServerPort),

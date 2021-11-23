@@ -1,6 +1,7 @@
 package yangschema
 
 import (
+	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/yndd/ndd-yang/pkg/leafref"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 )
@@ -24,6 +25,9 @@ func initIpamTenantNetworkInstanceIpRangeParent(p *yentry.Entry, opts ...yentry.
 
 	for name, initFunc := range children {
 		e.Children[name] = initFunc(e, yentry.WithLogging(e.Log))
+	}
+	if e.ResourceBoundary {
+		e.Register(&gnmi.Path{Elem: []*gnmi.PathElem{}})
 	}
 	return e
 }

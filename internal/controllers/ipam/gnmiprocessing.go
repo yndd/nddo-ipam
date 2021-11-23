@@ -28,7 +28,7 @@ import (
 
 const (
 	GnmiTarget = "dummy"
-	GnmiOrigin = "ipam"
+	GnmiOrigin = "dummy"
 )
 
 // processObserve

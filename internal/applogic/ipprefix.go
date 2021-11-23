@@ -10,12 +10,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
+	"inet.af/netaddr"
 )
 
+/*
 func init() {
 	dispatcher.Register("network-instance", []*dispatcher.EventHandler{
 		{
@@ -30,6 +32,7 @@ func init() {
 		},
 	})
 }
+*/
 
 type ipprefix struct {
 	dispatcher.Resource
@@ -61,7 +64,7 @@ func (r *ipprefix) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewIpPrefix(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+func NewIpPrefix(n string, opts ...dispatcher.Option) dispatcher.Handler {
 	x := &ipprefix{}
 	x.Key = n
 
@@ -121,16 +124,6 @@ func (r *ipprefix) SetRootSchema(rs *yentry.Entry) {
 func (r *ipprefix) GetChildren() map[string]string {
 	var x map[string]string
 	return x
-}
-
-func (r *ipprefix) UpdateConfig(d interface{}) error {
-	r.Copy(d)
-
-	// TBD
-	if err := r.UpdateStateCache(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (r *ipprefix) GetPathElem(p []*gnmi.PathElem, do_recursive bool) ([]*gnmi.PathElem, error) {
@@ -232,6 +225,45 @@ func (r *ipprefix) DeleteStateCache() error {
 		Delete:    []*gnmi.Path{{Elem: pe}},
 	}
 	if err := r.StateCache.GnmiUpdate(r.Prefix.Target, n); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ipprefix) GetTags() map[string]string {
+	tags := make(map[string]string)
+	for _, t := range r.data.Tag {
+		tags[*t.DeepCopy().Key] = *t.DeepCopy().Value
+	}
+	return tags
+}
+
+func (r *ipprefix) UpdateConfig(d interface{}) error {
+	r.Copy(d)
+	if r.data.Prefix != nil {
+		log := r.Log.WithValues("Prefix", *r.data.Prefix)
+		log.Debug("UpdateConfig iprepfix")
+		fmt.Printf("UpdateConfig iprepfix: %s\n", *r.data.Prefix)
+	}
+
+	p, err := netaddr.ParseIPPrefix(*r.data.Prefix)
+	if err != nil {
+		r.Log.Debug("UpdateConfig ParseIPPrefix", "Error", err)
+		return err
+	}
+
+	if err := r.parent.AddRoute(p, r.GetTags()); err != nil {
+		r.data.SetStatus("down")
+		r.data.SetReason(fmt.Sprintf("%v", err))
+		fmt.Printf("UpdateConfig iprepfix AddRoute error %v\n", err)
+		//log.Debug("UpdateConfig AddRoute", "Error", err)
+	} else {
+		r.data.SetStatus("up")
+		r.data.SetReason("")
+	}
+	r.data.SetLastUpdate(time.Now().String())
+
+	if err := r.UpdateStateCache(); err != nil {
 		return err
 	}
 	return nil

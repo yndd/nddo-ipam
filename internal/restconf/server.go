@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
 type Config struct {
@@ -60,7 +60,7 @@ func WithRootResource(c dispatcher.Handler) Option {
 	}
 }
 
-func WithDispatcher(c *dispatcher.Dispatcher) Option {
+func WithDispatcher(c dispatcher.Dispatcher) Option {
 	return func(s *Server) {
 		s.dispatcher = c
 	}
@@ -70,7 +70,7 @@ type Server struct {
 	cfg Config
 	// router
 	rootResource dispatcher.Handler
-	dispatcher   *dispatcher.Dispatcher
+	dispatcher   dispatcher.Dispatcher
 	// rootSchema
 	rootSchema *yentry.Entry
 	// schema

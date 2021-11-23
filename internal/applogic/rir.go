@@ -10,12 +10,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
+/*
 func init() {
 	dispatcher.Register("rir", []*dispatcher.EventHandler{
 		{
@@ -28,6 +29,7 @@ func init() {
 		},
 	})
 }
+*/
 
 type rir struct {
 	dispatcher.Resource
@@ -59,7 +61,7 @@ func (r *rir) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewRir(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+func NewRir(n string, opts ...dispatcher.Option) dispatcher.Handler {
 	x := &rir{}
 	x.Key = n
 

@@ -27,8 +27,10 @@ import (
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	ynddparser "github.com/yndd/ndd-yang/pkg/parser"
 	"github.com/yndd/ndd-yang/pkg/yentry"
+	"github.com/yndd/ndd-yang/pkg/yparser"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -37,7 +39,6 @@ import (
 
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 )
 
@@ -116,9 +117,9 @@ func WithRootResource(c dispatcher.Handler) Option {
 	}
 }
 
-func WithDispatcher(c *dispatcher.Dispatcher) Option {
+func WithResources(c []*gnmi.Path) Option {
 	return func(s *Server) {
-		s.dispatcher = c
+		s.resources = c
 	}
 }
 
@@ -132,7 +133,8 @@ type Server struct {
 
 	// router
 	rootResource dispatcher.Handler
-	dispatcher   *dispatcher.Dispatcher
+	resources    []*gnmi.Path
+	dispatcher   dispatcher.Dispatcher
 	// rootSchema
 	rootSchema *yentry.Entry
 	// schema
@@ -161,6 +163,15 @@ func New(opts ...Option) (*Server, error) {
 	for _, opt := range opts {
 		opt(s)
 	}
+
+	// intialize dispatcher
+	s.dispatcher = dispatcher.New()
+	for _, path := range s.resources {
+		s.log.Debug("grpc server resource", "path", yparser.GnmiPath2XPath(path, true))
+	}
+	s.dispatcher.Init(s.resources)
+
+	s.dispatcher.ShowTree()
 
 	// set cache event handlers
 	s.GetConfigCache().GetCache().SetClient(s.ConfigCacheEvents)

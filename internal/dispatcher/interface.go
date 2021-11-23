@@ -1,4 +1,4 @@
-package dispatcher
+package dispatcherold
 
 import (
 	"github.com/openconfig/gnmi/proto/gnmi"

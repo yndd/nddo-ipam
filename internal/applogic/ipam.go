@@ -10,16 +10,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-yang/pkg/cache"
+	"github.com/yndd/ndd-yang/pkg/dispatcher"
 	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/ndd-yang/pkg/yparser"
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
-	"github.com/yndd/nddo-ipam/internal/dispatcher"
 )
 
 const (
 	ipamDummyName = "dummy"
 )
 
+/*
 func init() {
 	dispatcher.Register("ipam", []*dispatcher.EventHandler{
 		{
@@ -31,12 +32,13 @@ func init() {
 		},
 	})
 }
+*/
 
 type ipam struct {
 	dispatcher.Resource
-	data    *ipamv1alpha1.NddoipamIpam
-	parent  *root
-	rirs    map[string]dispatcher.Handler
+	data   *ipamv1alpha1.NddoipamIpam
+	parent *root
+	//rirs    map[string]dispatcher.Handler
 	tenants map[string]dispatcher.Handler
 }
 
@@ -64,9 +66,9 @@ func (r *ipam) WithRootSchema(rs *yentry.Entry) {
 	r.RootSchema = rs
 }
 
-func NewIpam(n string, opts ...dispatcher.HandlerOption) dispatcher.Handler {
+func NewIpam(n string, opts ...dispatcher.Option) dispatcher.Handler {
 	x := &ipam{
-		rirs:    make(map[string]dispatcher.Handler),
+		//rirs:    make(map[string]dispatcher.Handler),
 		tenants: make(map[string]dispatcher.Handler),
 	}
 	x.Key = n
@@ -144,18 +146,20 @@ func (r *ipam) HandleConfigEvent(o dispatcher.Operation, prefix *gnmi.Path, pe [
 
 func (r *ipam) CreateChild(children map[string]dispatcher.HandleConfigEventFunc, pathElemName string, prefix *gnmi.Path, pe []*gnmi.PathElem, d interface{}) (dispatcher.Handler, error) {
 	switch pathElemName {
-	case "rir":
-		if i, ok := r.rirs[rirGetKey(pe)]; !ok {
-			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
-			i.SetRootSchema(r.RootSchema)
-			if err := i.SetParent(r); err != nil {
-				return nil, err
+	/*
+		case "rir":
+			if i, ok := r.rirs[rirGetKey(pe)]; !ok {
+				i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
+				i.SetRootSchema(r.RootSchema)
+				if err := i.SetParent(r); err != nil {
+					return nil, err
+				}
+				r.rirs[rirGetKey(pe)] = i
+				return i, nil
+			} else {
+				return i, nil
 			}
-			r.rirs[rirGetKey(pe)] = i
-			return i, nil
-		} else {
-			return i, nil
-		}
+	*/
 	case "tenant":
 		if i, ok := r.tenants[tenantGetKey(pe)]; !ok {
 			i = children[pathElemName](r.Log, r.ConfigCache, r.StateCache, prefix, pe, d)
@@ -174,13 +178,15 @@ func (r *ipam) CreateChild(children map[string]dispatcher.HandleConfigEventFunc,
 
 func (r *ipam) DeleteChild(pathElemName string, pe []*gnmi.PathElem) error {
 	switch pathElemName {
-	case "rir":
-		if i, ok := r.rirs[rirGetKey(pe)]; ok {
+	/*
+		case "rir":
+			if i, ok := r.rirs[rirGetKey(pe)]; ok {
 
-			if err := i.DeleteStateCache(); err != nil {
-				return err
+				if err := i.DeleteStateCache(); err != nil {
+					return err
+				}
 			}
-		}
+	*/
 	case "tenant":
 		if i, ok := r.tenants[tenantGetKey(pe)]; ok {
 			if err := i.DeleteStateCache(); err != nil {
@@ -206,9 +212,11 @@ func (r *ipam) SetRootSchema(rs *yentry.Entry) {
 
 func (r *ipam) GetChildren() map[string]string {
 	x := make(map[string]string)
-	for k := range r.rirs {
-		x[k] = "rir"
-	}
+	/*
+		for k := range r.rirs {
+			x[k] = "rir"
+		}
+	*/
 	for k := range r.tenants {
 		x[k] = "tenant"
 	}
@@ -216,7 +224,7 @@ func (r *ipam) GetChildren() map[string]string {
 }
 
 func (r *ipam) UpdateConfig(d interface{}) error {
-	// no updates required for ipam
+	r.Copy(d)
 	return nil
 }
 
