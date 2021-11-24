@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
+	"github.com/yndd/nddo-ipam/internal/shared"
 )
 
 const (
@@ -62,7 +63,7 @@ const (
 )
 
 // SetupIpam adds a controller that reconciles Ipams.
-func SetupIpam(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string, rs *yentry.Entry) (string, chan cevent.GenericEvent, error) {
+func SetupIpam(mgr ctrl.Manager, o controller.Options, nddcopts *shared.NddControllerOptions) (string, chan cevent.GenericEvent, error) {
 
 	name := managed.ControllerName(ipamv1alpha1.IpamGroupKind)
 
@@ -73,21 +74,23 @@ func SetupIpam(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll ti
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(ipamv1alpha1.IpamGroupVersionKind),
 		managed.WithExternalConnecter(&connectorIpam{
-			log:         l,
-			kube:        mgr.GetClient(),
-			usage:       resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
-			rootSchema:  rs,
-			y:           y,
-			newClientFn: target.NewTarget},
+			log:              nddcopts.Logger,
+			kube:             mgr.GetClient(),
+			usage:            resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
+			rootSchema:       nddcopts.Yentry,
+			y:                y,
+			newClientFn:      target.NewTarget,
+			grpcQueryAddress: nddcopts.GrpcQueryAddress,
+		},
 		),
-		managed.WithParser(l),
+		managed.WithParser(nddcopts.Logger),
 		managed.WithValidator(&validatorIpam{
-			log:        l,
-			rootSchema: rs,
+			log:        nddcopts.Logger,
+			rootSchema: nddcopts.Yentry,
 			y:          y,
-			parser:     *parser.NewParser(parser.WithLogger(l))},
+			parser:     *parser.NewParser(parser.WithLogger(nddcopts.Logger))},
 		),
-		managed.WithLogger(l.WithValues("controller", name)),
+		managed.WithLogger(nddcopts.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
 	return ipamv1alpha1.IpamGroupKind, events, ctrl.NewControllerManagedBy(mgr).
@@ -274,12 +277,13 @@ func (v *validatorIpam) ValidateResourceIndexes(ctx context.Context, mg resource
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorIpam struct {
-	log         logging.Logger
-	kube        client.Client
-	usage       resource.Tracker
-	rootSchema  *yentry.Entry
-	y           yresource.Handler
-	newClientFn func(c *gnmitypes.TargetConfig) *target.Target
+	log              logging.Logger
+	kube             client.Client
+	usage            resource.Tracker
+	rootSchema       *yentry.Entry
+	y                yresource.Handler
+	newClientFn      func(c *gnmitypes.TargetConfig) *target.Target
+	grpcQueryAddress string
 }
 
 // Connect produces an ExternalClient by:
@@ -290,9 +294,15 @@ func (c *connectorIpam) Connect(ctx context.Context, mg resource.Managed) (manag
 	log := c.log.WithValues("resource", mg.GetName(), "kind", mg.GetObjectKind())
 	log.Debug("Connect")
 
+	query_address := pkgmetav1.PrefixService + "-" + "ipam" + "." + pkgmetav1.NamespaceLocalK8sDNS + strconv.Itoa((pkgmetav1.GnmiServerPort))
+
+	if c.grpcQueryAddress != "" {
+		query_address = c.grpcQueryAddress
+	}
+
 	cfg := &gnmitypes.TargetConfig{
 		Name:       "dummy",
-		Address:    pkgmetav1.PrefixService + "-" + "ipam" + "." + pkgmetav1.NamespaceLocalK8sDNS + strconv.Itoa((pkgmetav1.GnmiServerPort)),
+		Address:    query_address,
 		Username:   utils.StringPtr("admin"),
 		Password:   utils.StringPtr("admin"),
 		Timeout:    10 * time.Second,
