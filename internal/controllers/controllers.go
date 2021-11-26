@@ -42,6 +42,5 @@ func Setup(mgr ctrl.Manager, option controller.Options, nddcopts *shared.NddCont
 		}
 		eventChans[gvk] = eventChan
 	}
-
 	return eventChans, nil
 }

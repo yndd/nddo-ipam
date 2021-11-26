@@ -73,8 +73,8 @@ func SetupIpamTenant(mgr ctrl.Manager, o controller.Options, nddcopts *shared.Nd
 	y := initYangIpamTenant()
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(ipamv1alpha1.IpamGroupVersionKind),
-		managed.WithExternalConnecter(&connectorIpam{
+		resource.ManagedKind(ipamv1alpha1.IpamTenantGroupVersionKind),
+		managed.WithExternalConnecter(&connectorIpamTenant{
 			log:              nddcopts.Logger,
 			kube:             mgr.GetClient(),
 			usage:            resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
@@ -85,7 +85,7 @@ func SetupIpamTenant(mgr ctrl.Manager, o controller.Options, nddcopts *shared.Nd
 		},
 		),
 		managed.WithParser(nddcopts.Logger),
-		managed.WithValidator(&validatorIpam{
+		managed.WithValidator(&validatorIpamTenant{
 			log:        nddcopts.Logger,
 			rootSchema: nddcopts.Yentry,
 			y:          y,
