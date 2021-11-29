@@ -17,22 +17,18 @@ limitations under the License.
 package controllers
 
 import (
-	"time"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	"github.com/yndd/ndd-runtime/pkg/logging"
-
-	"github.com/yndd/ndd-yang/pkg/yentry"
 	"github.com/yndd/nddo-ipam/internal/controllers/ipam"
+	"github.com/yndd/nddo-ipam/internal/shared"
 )
 
 // Setup package controllers.
-func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll time.Duration, namespace string, rs *yentry.Entry) (map[string]chan event.GenericEvent, error) {
+func Setup(mgr ctrl.Manager, option controller.Options, nddcopts *shared.NddControllerOptions) (map[string]chan event.GenericEvent, error) {
 	eventChans := make(map[string]chan event.GenericEvent)
-	for _, setup := range []func(ctrl.Manager, controller.Options, logging.Logger, time.Duration, string, *yentry.Entry) (string, chan event.GenericEvent, error){
+	for _, setup := range []func(ctrl.Manager, controller.Options, *shared.NddControllerOptions) (string, chan event.GenericEvent, error){
 		ipam.SetupIpam,
 		ipam.SetupIpamTenant,
 		ipam.SetupIpamTenantNetworkinstance,
@@ -40,12 +36,11 @@ func Setup(mgr ctrl.Manager, option controller.Options, l logging.Logger, poll t
 		ipam.SetupIpamTenantNetworkinstanceIprange,
 		ipam.SetupIpamTenantNetworkinstanceIpaddress,
 	} {
-		gvk, eventChan, err := setup(mgr, option, l, poll, namespace, rs)
+		gvk, eventChan, err := setup(mgr, option, nddcopts)
 		if err != nil {
 			return nil, err
 		}
 		eventChans[gvk] = eventChan
 	}
-
 	return eventChans, nil
 }

@@ -45,6 +45,7 @@ import (
 	"github.com/yndd/nddo-ipam/internal/gnmiserver"
 	"github.com/yndd/nddo-ipam/internal/kapi"
 	"github.com/yndd/nddo-ipam/internal/restconf"
+	"github.com/yndd/nddo-ipam/internal/shared"
 	"github.com/yndd/nddo-ipam/internal/yangschema"
 	//+kubebuilder:scaffold:imports
 )
@@ -58,6 +59,7 @@ var (
 	namespace            string
 	podname              string
 	grpcServerAddress    string
+	grpcQueryAddress     string
 )
 
 // startCmd represents the start command for the network device driver
@@ -113,8 +115,16 @@ var startCmd = &cobra.Command{
 			dispatcher.WithRootSchema(rootSchema),
 		)
 
+		nddcopts := &shared.NddControllerOptions{
+			Logger:           logging.NewLogrLogger(zlog.WithName("ipam")),
+			Poll:             pollInterval,
+			Namespace:        namespace,
+			Yentry:           rootSchema,
+			GrpcQueryAddress: grpcQueryAddress,
+		}
+
 		// initialize controllers
-		eventChans, err := controllers.Setup(mgr, nddCtlrOptions(concurrency), logging.NewLogrLogger(zlog.WithName("ipam")), pollInterval, namespace, rootSchema)
+		eventChans, err := controllers.Setup(mgr, nddCtlrOptions(concurrency), nddcopts)
 		if err != nil {
 			return errors.Wrap(err, "Cannot add nddo controllers to manager")
 		}
@@ -210,6 +220,7 @@ func init() {
 	startCmd.Flags().StringVarP(&namespace, "namespace", "n", os.Getenv("POD_NAMESPACE"), "Namespace used to unpack and run packages.")
 	startCmd.Flags().StringVarP(&podname, "podname", "", os.Getenv("POD_NAME"), "Name from the pod")
 	startCmd.Flags().StringVarP(&grpcServerAddress, "grpc-server-address", "s", "", "The address of the grpc server binds to.")
+	startCmd.Flags().StringVarP(&grpcQueryAddress, "grpc-query-address", "", "", "Validation query address.")
 }
 
 func nddCtlrOptions(c int) controller.Options {

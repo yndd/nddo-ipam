@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	ipamv1alpha1 "github.com/yndd/nddo-ipam/apis/ipam/v1alpha1"
+	"github.com/yndd/nddo-ipam/internal/shared"
 )
 
 const (
@@ -87,7 +88,7 @@ var resourceRefPathsIpamTenantNetworkinstanceIpprefix = []*gnmi.Path{
 //var externalLeafRefIpamTenantNetworkinstanceIpprefix = []*parser.LeafRefGnmi{}
 
 // SetupIpamTenantNetworkinstanceIpprefix adds a controller that reconciles IpamTenantNetworkinstanceIpprefixs.
-func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Options, l logging.Logger, poll time.Duration, namespace string, rs *yentry.Entry) (string, chan cevent.GenericEvent, error) {
+func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Options, nddcopts *shared.NddControllerOptions) (string, chan cevent.GenericEvent, error) {
 
 	name := managed.ControllerName(ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupKind)
 
@@ -98,20 +99,23 @@ func SetupIpamTenantNetworkinstanceIpprefix(mgr ctrl.Manager, o controller.Optio
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupVersionKind),
 		managed.WithExternalConnecter(&connectorIpamTenantNetworkinstanceIpprefix{
-			log:         l,
-			kube:        mgr.GetClient(),
-			usage:       resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
-			rootSchema:  rs,
-			y:           y,
-			newClientFn: target.NewTarget},
+			log:              nddcopts.Logger,
+			kube:             mgr.GetClient(),
+			usage:            resource.NewNetworkNodeUsageTracker(mgr.GetClient(), &ndrv1.NetworkNodeUsage{}),
+			rootSchema:       nddcopts.Yentry,
+			y:                y,
+			newClientFn:      target.NewTarget,
+			grpcQueryAddress: nddcopts.GrpcQueryAddress,
+		},
 		),
-		managed.WithParser(l),
+		managed.WithParser(nddcopts.Logger),
 		managed.WithValidator(&validatorIpamTenantNetworkinstanceIpprefix{
-			log:        l,
-			rootSchema: rs,
+			log:        nddcopts.Logger,
+			rootSchema: nddcopts.Yentry,
 			y:          y,
-			parser:     *parser.NewParser(parser.WithLogger(l))}),
-		managed.WithLogger(l.WithValues("controller", name)),
+			parser:     *parser.NewParser(parser.WithLogger(nddcopts.Logger))},
+		),
+		managed.WithLogger(nddcopts.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
 	return ipamv1alpha1.IpamTenantNetworkinstanceIpprefixGroupKind, events, ctrl.NewControllerManagedBy(mgr).
@@ -320,6 +324,7 @@ type connectorIpamTenantNetworkinstanceIpprefix struct {
 	y           yresource.Handler
 	newClientFn func(c *gnmitypes.TargetConfig) *target.Target
 	//newClientFn func(ctx context.Context, cfg ndd.Config) (config.ConfigurationClient, error)
+	grpcQueryAddress string
 }
 
 // Connect produces an ExternalClient by:
@@ -330,9 +335,15 @@ func (c *connectorIpamTenantNetworkinstanceIpprefix) Connect(ctx context.Context
 	log := c.log.WithValues("resource", mg.GetName())
 	log.Debug("Connect")
 
+	query_address := pkgmetav1.PrefixService + "-" + "ipam" + "." + pkgmetav1.NamespaceLocalK8sDNS + strconv.Itoa((pkgmetav1.GnmiServerPort))
+
+	if c.grpcQueryAddress != "" {
+		query_address = c.grpcQueryAddress
+	}
+
 	cfg := &gnmitypes.TargetConfig{
 		Name:       "dummy",
-		Address:    pkgmetav1.PrefixService + "-" + "ipam" + "." + pkgmetav1.NamespaceLocalK8sDNS + strconv.Itoa((pkgmetav1.GnmiServerPort)),
+		Address:    query_address,
 		Username:   utils.StringPtr("admin"),
 		Password:   utils.StringPtr("admin"),
 		Timeout:    10 * time.Second,
